@@ -693,7 +693,24 @@
         
         function addImageLayer(image, src) {
             if (layers.length >= 10) return toast('Maximum 10 layers allowed');
-            layers.push({ img: image, src: src, x: 50, y: 50, size: 100, rot: 0, flip: false, cropY: 0 });
+
+            // Define the maximum initial size of the new layer as a percentage of the canvas dimensions.
+            const MAX_DIM_PERCENT = 0.40; // 40% of canvas width/height
+            const maxLayerWidth = W() * MAX_DIM_PERCENT;
+            const maxLayerHeight = H() * MAX_DIM_PERCENT;
+
+            // Calculate the scaling factor needed to fit the width and height separately.
+            const scaleToFitWidth = maxLayerWidth / image.naturalWidth;
+            const scaleToFitHeight = maxLayerHeight / image.naturalHeight;
+
+            // Use the smaller of the two scaling factors to ensure the layer fits
+            // within both the max width and max height, preserving its aspect ratio.
+            const finalScale = Math.min(scaleToFitWidth, scaleToFitHeight);
+
+            // The 'size' property is a percentage, so multiply the scale factor by 100.
+            const initialSize = finalScale * 100;
+
+            layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0 });
             selectLayer(layers.length - 1);
         }
 
