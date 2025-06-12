@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ADHD-ifier</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --background-color: #f8f9fa;
+            --component-bg: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --muted-color: #6c757d;
+            --danger-color: #dc3545;
+        }
+    html {
+        scroll-behavior: smooth;
+        background-color: var(--background-color);
+        overscroll-behavior: none;
+        margin: 0;
+        padding: 0;
+        -webkit-overflow-scrolling: touch;
+        -webkit-tap-highlight-color: transparent;
+    }
+    body {
+        margin: 0;
+        padding: .5rem;
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        text-align: center;
+        min-height: 100vh;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    * {
+        box-sizing: border-box;
+    }
+    #adhd-meme-generator {
+        font-family: "Poppins", sans-serif;
+        color: var(--text-color);
+        background-color: var(--background-color);
+        padding: 1rem .5rem;
+        max-width: 1200px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+    }
+    #adhd-meme-generator h2 {
+        font-size: 1.8rem;
+        margin: 0 0 .2rem;
+        color: var(--text-color);
+    }
+    #adhd-meme-generator h3 {
+        font-size: 1rem;
+        margin: .5rem 0 .3rem;
+        color: var(--text-color);
+        font-weight: 500;
+    }
+    #adhd-meme-generator p.tagline {
+        font-size: .9rem;
+        margin: 0 0 .5rem;
+        font-weight: 400;
+        color: var(--muted-color);
+    }
+    .mg-preview {
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        touch-action: none;
+    }
+    .mg-preview canvas {
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        display: block;
+        margin: 0 auto;
+        background-color: #fff;
+    }
+    .mg-preview.no-image canvas {
+        border: 2px dashed var(--border-color);
+        cursor: pointer;
+        width: 100%;
+        aspect-ratio: 4/3;
+    }
+    .mg-preview.no-image canvas:hover {
+        border-color: var(--primary-color);
+        background-color: #fdfdff;
+    }
+    .mg-preview.no-image::after {
+        content: "Click or drag image here";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: .85rem;
+        color: var(--muted-color);
+        pointer-events: none;
+    }
+    .mg-controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .75rem;
+        width: 100%;
+    }
+    .mg-controls fieldset {
+        background: var(--component-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: .8rem .6rem;
+        margin: 0;
+        text-align: left;
+    }
+    .mg-controls legend {
+        font-size: .85rem;
+        font-weight: 600;
+        padding: 0 .25rem;
+        margin-bottom: .3rem;
+    }
+    .mg-controls input[type="file"] {
+        display: none;
+    }
+    .mg-slider {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+        margin: .3rem 0;
+    }
+    .mg-slider input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        flex: 1;
+        height: 6px;
+        background: var(--border-color);
+        border-radius: 3px;
+        outline: none;
+        opacity: 0.8;
+        transition: opacity .2s;
+    }
+    .mg-slider input[type="range"]:hover { opacity: 1; }
+    .mg-slider input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    .mg-slider input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    .mg-slider span {
+        font-size: .75rem;
+        width: 32px;
+        text-align: right;
+        min-width: 32px;
+        color: var(--muted-color);
+    }
+    .mg-slider-label {
+        font-size: .75rem;
+        width: 32px;
+        text-align: left;
+        min-width: 32px;
+        color: var(--muted-color);
+    }
+    .mg-row {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        margin: .4rem 0;
+        flex-wrap: nowrap;
+    }
+    textarea#mg-text {
+        width: 100%;
+        resize: vertical;
+        border-radius: 4px;
+        padding: .3rem;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        font-family: 'Poppins', sans-serif;
+        font-size: .8rem;
+        min-height: 2.5rem;
+        max-height: 5rem;
+    }
+    .mg-template-container {
+        display: flex;
+        gap: .3rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .mg-template, .mg-template-add, .mg-template-more {
+        width: 80px;
+        height: 80px;
+        background: #fff;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: border-color .2s, transform .2s;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-color);
+        line-height: 1;
+    }
+    .mg-template img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .mg-template:hover, .mg-template-add:hover, .mg-template-more:hover {
+        border-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    .mg-template.disabled, .mg-template-add.disabled, .mg-template-more.disabled {
+        opacity: .5;
+        pointer-events: none;
+        background: #f0f0f0;
+    }
+    .mg-template-add svg, .mg-template-more svg {
+        width: 36px;
+        height: 36px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        color: var(--muted-color);
+    }
+    .mg-template-add:hover svg, .mg-template-more:hover svg {
+        opacity: 1;
+        color: var(--primary-color);
+    }
+    .mg-text-layer-add {
+        width: 80px;
+        height: 32px;
+        background: #fff;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all .2s;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--muted-color);
+    }
+    .mg-text-layer-add:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    .mg-text-layer-add.disabled {
+        opacity: .5;
+        pointer-events: none;
+        background: #f0f0f0;
+    }
+    .mg-actions {
+        display: flex;
+        justify-content: center;
+        gap: .5rem;
+        margin-top: .75rem;
+    }
+    .mg-btn {
+        padding: .6rem 1.2rem;
+        border-radius: 20px;
+        border: none;
+        background: var(--primary-color);
+        color: #fff;
+        font-family: 'Poppins', sans-serif;
+        font-size: .85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform .2s, opacity .2s;
+    }
+    .mg-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+    .mg-icon-btn {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        border: 1px solid var(--border-color);
+        background: #fff;
+        color: var(--text-color);
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background .2s, transform .2s, border-color .2s;
+        display: inline-flex; justify-content: center; align-items: center;
+    }
+    .mg-icon-btn:hover { background-color: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+    .color-swatch {
+        display: inline-block;
+        width: 14px; height: 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        background: linear-gradient(45deg, #000 0%, #000 50%, #fff 50%, #fff 100%);
+    }
+    .mg-layer-thumb {
+        width: 40px; height: 40px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px; overflow: hidden;
+        cursor: pointer;
+        transition: all .2s; opacity: .8;
+        position: relative;
+    }
+    .mg-layer-thumb:hover { border-color: var(--primary-color); opacity: 1; }
+    .mg-layer-thumb.active { border-color: var(--primary-color); opacity: 1; transform: scale(1.08); box-shadow: 0 0 8px rgba(13, 110, 253, 0.4); }
+    .mg-layer-thumb .delete-layer {
+        position: absolute; top: -1px; right: -1px;
+        color: #fff; background-color: var(--danger-color);
+        font-size: .7rem; font-weight: bold; line-height: 1;
+        padding: 1px 4px; cursor: pointer;
+        border-radius: 0 4px 0 4px; transition: background-color .2s;
+    }
+    .mg-layer-thumb .delete-layer:hover { background: #a82431; }
+    .mg-text-thumb {
+        position: relative; width: 80px; height: 32px;
+        background: #fff; border: 2px solid var(--border-color);
+        border-radius: 6px; display: flex; align-items: center; justify-content: center;
+        font-size: .7rem; cursor: pointer; opacity: .8; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; padding: 0 16px 0 4px;
+        transition: all .2s;
+    }
+    .mg-text-thumb.active { border-color: var(--primary-color); opacity: 1; transform: scale(1.05); box-shadow: 0 0 8px rgba(13, 110, 253, 0.4); }
+    .mg-text-thumb:hover { border-color: var(--primary-color); opacity: 1; }
+    .mg-text-thumb .delete-layer {
+        position: absolute; top: 1px; right: 1px;
+        padding: 1px 4px; font-size: .7rem; background: var(--danger-color);
+        color: #fff; cursor: pointer; border-radius: 4px;
+        font-weight: bold; transition: background-color .2s;
+    }
+    .mg-text-thumb .delete-layer:hover { background: #a82431; }
+    .mg-editor-layout {
+        display: flex; flex-direction: column; 
+        gap: .75rem; width: 100%;
+    }
+    @media (max-width: 899px) {
+        #adhd-meme-generator { padding: .5rem; }
+        .mg-controls {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+    }
+    @media (min-width: 900px) {
+        .mg-editor-layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 420px) 1fr;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+        .mg-controls-wrapper { grid-column: 1 / 2; }
+        .mg-preview-wrapper { grid-column: 2 / 3; position: sticky; top: 1rem; }
+    }
+    #mg-toast {
+        position: fixed; bottom: 10px; left: 50%;
+        transform: translateX(-50%);
+        background: var(--text-color);
+        padding: .5rem 1rem;
+        border-radius: 6px;
+        color: #fff;
+        font-size: .8rem;
+        opacity: 0; pointer-events: none;
+        transition: opacity .35s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .mg-layers {
+        display: flex; gap: .3rem; flex-wrap: wrap;
+        margin: .5rem 0 .3rem; justify-content: center;
+    }
+    #mg-template-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(33, 37, 41, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 0.3s, visibility 0s 0.3s;
+    }
+    #mg-template-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.3s, visibility 0s 0s; }
+    #mg-template-grid-wrapper {
+        background: var(--component-bg);
+        border: 1px solid var(--border-color);
+        padding: 2rem 1.5rem 1.5rem; border-radius: 12px;
+        position: relative; max-width: min(90vw, 420px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transform: scale(0.95);
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    #mg-template-overlay.visible #mg-template-grid-wrapper { transform: scale(1); }
+    #mg-template-grid-wrapper h4 {
+        margin: -0.5rem 0 1rem;
+        text-align: center; font-size: 1.1rem;
+        font-weight: 500; color: var(--text-color);
+    }
+    #mg-template-overlay-close {
+        position: absolute; top: 8px; right: 10px;
+        background: none; border: none;
+        color: var(--muted-color);
+        font-size: 2rem; line-height: 1;
+        cursor: pointer; padding: 5px;
+        transition: color 0.2s, transform 0.2s;
+    }
+    #mg-template-overlay-close:hover { color: var(--text-color); transform: scale(1.1); }
+    #mg-template-grid {
+        display: grid; grid-template-columns: repeat(4, 80px);
+        gap: 0.5rem; justify-content: center;
+    }
+    @media (max-width: 480px) {
+         #mg-template-grid { grid-template-columns: repeat(3, 80px); }
+    }
+</style>
+
+</head>
+<body>
+    <section id="adhd-meme-generator" class="adhd-meme-generator">
+        <h2>ADHD-ifier</h2>
+        <p class="tagline">Upload → add character → adjust → add text → download/share</p>
+        
+
+    <div class="mg-editor-layout">
+        
+        <div class="mg-controls-wrapper">
+            <div class="mg-controls">
+                <fieldset>
+                    <legend>1 · Template</legend>
+                    <div id="mg-layers" class="mg-layers"></div>
+                    <h3>Add Layer</h3>
+                    <div class="mg-template-container">
+                        <div class="mg-template disabled" data-template="1.png"><img src="./1.png" alt="Template 1"></div>
+                        <div class="mg-template disabled" data-template="2.png"><img src="./2.png" alt="Template 2"></div>
+                        <div class="mg-template disabled" data-template="3.png"><img src="./3.png" alt="Template 3"></div>
+                        <div class="mg-template disabled" data-template="4.png"><img src="./4.png" alt="Template 4"></div>
+                        <div class="mg-template-more disabled" id="mg-template-more" title="More templates">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3ZM8.5 8.5H5.5V5.5H8.5V8.5Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13ZM8.5 18.5H5.5V15.5H8.5V18.5Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3ZM18.5 8.5H15.5V5.5H18.5V8.5Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13ZM18.5 18.5H15.5V15.5H18.5V18.5Z"></path>
+                            </svg>
+                        </div>
+                        <label class="mg-template-add disabled" id="mg-template-add" title="Add Custom PNG">
+                            <input type="file" id="mg-template-file" accept="image/png"/>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13 10H18L12 3L6 10H11V16H13V10ZM4 18V20H20V18H4Z"></path>
+                            </svg>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>2 · Size/Position</legend>
+                    <div class="mg-slider"><span class="mg-slider-label">X pos</span><input type="range" id="mg-pos-x" min="0" max="100" value="50" disabled/><span id="mg-pos-x-val">50</span></div>
+                    <div class="mg-slider"><span class="mg-slider-label">Y pos</span><input type="range" id="mg-pos-y" min="0" max="100" value="50" style="transform: scaleY(-1);" disabled/><span id="mg-pos-y-val">50</span></div>
+                    <div class="mg-slider"><span class="mg-slider-label">Size</span><input type="range" id="mg-size" min="10" max="200" value="100" disabled/><span id="mg-size-val">100</span></div>
+                    <div class="mg-slider"><span class="mg-slider-label">Crop</span><input type="range" id="mg-crop-y" min="0" max="99" value="0" disabled/><span id="mg-crop-y-val">0</span></div>
+                    <div class="mg-slider"><span class="mg-slider-label">Rotate</span><input type="range" id="mg-rotate" min="0" max="360" value="0" disabled/><span id="mg-rotate-val">0</span></div>
+                    <div class="mg-row" style="justify-content:center;">
+                        <button class="mg-icon-btn" id="mg-rotate-icon" disabled title="Rotate 90°">↻</button>
+                        <button class="mg-icon-btn" id="mg-flip-icon" disabled title="Flip Horizontally">⇆</button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>3 · Text</legend>
+                    <div id="mg-text-layer-bar" class="mg-template-container" style="margin-bottom:.5rem">
+                        <div id="mg-text-layer-add" class="mg-text-layer-add disabled" title="Add text layer"><span>+</span></div>
+                    </div>
+                    <textarea id="mg-text" rows="2" placeholder="Meme text" disabled></textarea>
+                    <div class="mg-slider">
+                        <span class="mg-slider-label">Size</span>
+                        <input type="range" id="mg-text-size" min="10" max="150" value="40" disabled/>
+                        <span id="mg-text-size-val">40</span>
+                    </div>
+                    <div class="mg-slider">
+                        <span class="mg-slider-label">X pos</span>
+                        <input type="range" id="mg-text-pos-x" min="0" max="100" value="50" disabled/>
+                        <span id="mg-text-pos-x-val">50</span>
+                    </div>
+                    <div class="mg-slider">
+                        <span class="mg-slider-label">Y pos</span>
+                        <input type="range" id="mg-text-pos-y" min="0" max="100" value="50" disabled/>
+                        <span id="mg-text-pos-y-val">50</span>
+                    </div>
+                    <div class="mg-row" style="justify-content: center;">
+                        <button class="mg-icon-btn" id="mg-text-color-toggle" disabled title="Toggle Text Color"><span class="color-swatch"></span></button>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+        
+        <div class="mg-preview-wrapper">
+            <div class="mg-preview no-image">
+                <canvas id="mg-canvas" width="800" height="600"></canvas>
+                <input type="file" id="mg-file" accept="image/*" style="display:none"/>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mg-actions">
+        <button class="mg-btn" id="mg-reset">Reset</button>
+        <button class="mg-btn" id="mg-download">Download</button>
+        <button class="mg-btn" id="mg-share">Share on X</button>
+    </div>
+</section>
+
+<div id="mg-toast"></div>
+
+<div id="mg-template-overlay">
+    <div id="mg-template-grid-wrapper">
+        <button id="mg-template-overlay-close">×</button>
+        <h4>Choose a template</h4>
+        <div id="mg-template-grid">
+            <div class="mg-template" data-template="1.png"><img src="./1.png" alt="Template 1"></div>
+            <div class="mg-template" data-template="2.png"><img src="./2.png" alt="Template 2"></div>
+            <div class="mg-template" data-template="3.png"><img src="./3.png" alt="Template 3"></div>
+            <div class="mg-template" data-template="4.png"><img src="./4.png" alt="Template 4"></div>
+            <div class="mg-template" data-template="5.png"><img src="./5.png" alt="Template 5"></div>
+            <div class="mg-template" data-template="6.png"><img src="./6.png" alt="Template 6"></div>
+            <div class="mg-template" data-template="7.png"><img src="./7.png" alt="Template 7"></div>
+            <div class="mg-template" data-template="8.png"><img src="./8.png" alt="Template 8"></div>
+            <div class="mg-template" data-template="9.png"><img src="./9.png" alt="Template 9"></div>
+            <div class="mg-template" data-template="10.png"><img src="./10.png" alt="Template 10"></div>
+            <div class="mg-template" data-template="11.png"><img src="./11.png" alt="Template 11"></div>
+            <div class="mg-template" data-template="12.png"><img src="./12.png" alt="Template 12"></div>
+            <div class="mg-template" data-template="13.png"><img src="./13.png" alt="Template 13"></div>
+            <div class="mg-template" data-template="14.png"><img src="./14.png" alt="Template 14"></div>
+            <div class="mg-template" data-template="15.png"><img src="./15.png" alt="Template 15"></div>
+            <div class="mg-template" data-template="16.png"><img src="./16.png" alt="Template 16"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const fileInput = document.getElementById('mg-file');
+        const canvas = document.getElementById('mg-canvas');
+        const preview = document.querySelector('.mg-preview');
+        const previewWrapper = document.querySelector('.mg-preview-wrapper');
+        const ctx = canvas.getContext('2d');
+        const txtArea = document.getElementById('mg-text');
+        const txtSizeEl = document.getElementById('mg-text-size');
+        const txtPosXEl = document.getElementById('mg-text-pos-x');
+        const txtPosYEl = document.getElementById('mg-text-pos-y');
+        const textColorToggle = document.getElementById('mg-text-color-toggle');
+        
+        const templateOverlay = document.getElementById('mg-template-overlay');
+        const moreTemplatesBtn = document.getElementById('mg-template-more');
+        const closeOverlayBtn = document.getElementById('mg-template-overlay-close');
+        
+        let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
+        let interaction = { active: false };
+        const HANDLE_SIZE = 10;
+        const DPR = window.devicePixelRatio || 1;
+
+        function resizeCanvasCSS(w, h) {
+            canvas.width = w * DPR; canvas.height = h * DPR;
+            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(DPR, DPR);
+            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        }
+        const W = () => canvas.width / DPR;
+        const H = () => canvas.height / DPR;
+        const toast = (msg) => {
+            const t = document.getElementById('mg-toast');
+            t.textContent = msg; t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 2400);
+        };
+
+        function fitCanvasToContainer() {
+            if (!img) return;
+            canvas.style.width = ''; canvas.style.height = '';
+            const containerWidth = previewWrapper.clientWidth;
+            const containerHeight = window.innerHeight * 0.85; 
+            const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+            const containerAspectRatio = containerWidth / containerHeight;
+            if (imgAspectRatio > containerAspectRatio) {
+                canvas.style.width = containerWidth + 'px';
+                canvas.style.height = 'auto';
+            } else {
+                canvas.style.height = containerHeight + 'px';
+                canvas.style.width = 'auto';
+            }
+        }
+
+        function updateAllControls() { updateImageControls(); updateTextControls(); }
+
+        function updateImageControls() {
+            const disabled = activeLayer === null;
+            document.getElementById('mg-pos-x').disabled = disabled;
+            document.getElementById('mg-pos-y').disabled = disabled;
+            document.getElementById('mg-size').disabled = disabled;
+            document.getElementById('mg-crop-y').disabled = disabled;
+            document.getElementById('mg-rotate').disabled = disabled;
+            document.getElementById('mg-rotate-icon').disabled = disabled;
+            document.getElementById('mg-flip-icon').disabled = disabled;
+            if (!disabled) {
+                const l = layers[activeLayer];
+                document.getElementById('mg-pos-x').value = l.x;
+                document.getElementById('mg-pos-x-val').textContent = Math.round(l.x);
+                document.getElementById('mg-pos-y').value = 100 - l.y;
+                document.getElementById('mg-pos-y-val').textContent = Math.round(l.y);
+                document.getElementById('mg-size').value = l.size;
+                document.getElementById('mg-size-val').textContent = Math.round(l.size);
+                document.getElementById('mg-crop-y').value = l.cropY;
+                document.getElementById('mg-crop-y-val').textContent = Math.round(l.cropY);
+                document.getElementById('mg-rotate').value = l.rot;
+                document.getElementById('mg-rotate-val').textContent = Math.round(l.rot);
+            }
+        }
+
+        function updateTextControls() {
+            txtArea.disabled = img === null;
+            const controlsDisabled = activeTextLayer === null;
+            txtSizeEl.disabled = controlsDisabled;
+            txtPosXEl.disabled = controlsDisabled;
+            txtPosYEl.disabled = controlsDisabled;
+            textColorToggle.disabled = controlsDisabled;
+            if (!controlsDisabled) {
+                const t = textLayers[activeTextLayer];
+                txtArea.value = t.text;
+                txtSizeEl.value = t.size;
+                document.getElementById('mg-text-size-val').textContent = Math.round(t.size);
+                txtPosXEl.value = t.x;
+                document.getElementById('mg-text-pos-x-val').textContent = Math.round(t.x);
+                txtPosYEl.value = t.y;
+                document.getElementById('mg-text-pos-y-val').textContent = Math.round(t.y);
+            } else {
+                txtArea.value = '';
+            }
+        }
+        
+        function selectLayer(i) {
+            activeLayer = i; activeTextLayer = null;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
+        }
+
+        function selectTextLayer(i) {
+            activeTextLayer = i; activeLayer = null;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
+        }
+        
+        function deselectAll() {
+            activeLayer = null; activeTextLayer = null;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
+        }
+        
+        function refreshLayerUI() {
+            const wrap = document.getElementById('mg-layers');
+            wrap.innerHTML = '';
+            layers.forEach((layer, i) => {
+                const div = document.createElement('div');
+                div.className = `mg-layer-thumb ${i === activeLayer ? 'active' : ''}`;
+                // FIXED: Added inline style to the img tag to ensure it is visible inside its container.
+                div.innerHTML = `<img src="${layer.src}" alt="Layer ${i + 1}" style="width: 100%; height: 100%; object-fit: cover;"><span class="delete-layer">x</span>`;
+                div.onclick = () => selectLayer(i);
+                div.querySelector('.delete-layer').onclick = (e) => {
+                    e.stopPropagation();
+                    layers.splice(i, 1);
+                    if (activeLayer === i) {
+                        deselectAll();
+                    } else if (activeLayer > i) {
+                        activeLayer--;
+                    }
+                    refreshLayerUI();
+                    draw();
+                    toast('Layer removed');
+                };
+                wrap.appendChild(div);
+            });
+        }
+
+        function refreshTextThumbs() {
+            const bar = document.getElementById('mg-text-layer-bar');
+            [...bar.querySelectorAll('.mg-text-thumb')].forEach(e => e.remove());
+            textLayers.forEach((t, i) => {
+                const d = document.createElement('div');
+                d.className = `mg-text-thumb ${i === activeTextLayer ? 'active' : ''}`;
+                d.textContent = t.text.trim().slice(0, 8) || 'Text';
+                d.onclick = () => selectTextLayer(i);
+                const del = document.createElement('span');
+                del.className = 'delete-layer'; del.textContent = 'x';
+                del.onclick = (e) => { e.stopPropagation(); deleteTextLayer(i); };
+                d.appendChild(del);
+                bar.insertBefore(d, document.getElementById('mg-text-layer-add'));
+            });
+            document.getElementById('mg-text-layer-add').classList.toggle('disabled', !img);
+        }
+
+        function addTextLayer(isImplicit = false) {
+            if (!img || textLayers.length >= 10) return;
+            textLayers.push({ text: '', size: 40, x: 50, y: 50, color: 'white' });
+            selectTextLayer(textLayers.length - 1);
+            if (!isImplicit) toast('Text layer added');
+        }
+
+        function deleteTextLayer(i) {
+            textLayers.splice(i, 1);
+            if (activeTextLayer === i) {
+                deselectAll();
+            } else {
+                if(activeTextLayer > i) activeTextLayer--;
+                refreshTextThumbs();
+            }
+            draw(); toast('Text layer removed');
+        }
+
+        function getTextBounds(textLayer) {
+            const t = textLayer;
+            const fontPx = t.size * (W() / 800);
+            ctx.font = `700 ${fontPx}px 'Poppins', 'Arial Black', sans-serif`;
+            const lines = t.text.split('\n');
+            let maxWidth = 0;
+            lines.forEach(line => { if (ctx.measureText(line).width > maxWidth) maxWidth = ctx.measureText(line).width; });
+            const totalHeight = lines.length * fontPx * 1.1;
+            const cx = W() * (t.x / 100), cy = H() * (t.y / 100);
+            return { x: cx - maxWidth / 2, y: cy - totalHeight / 2, width: maxWidth, height: totalHeight, cx, cy };
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, W(), H());
+            if (img) ctx.drawImage(img, 0, 0, W(), H());
+            
+            layers.forEach(l => {
+                const scale = l.size / 100;
+                const cropPercent = (l.cropY || 0) / 100;
+
+                const sWidth = l.img.naturalWidth;
+                const sHeight = l.img.naturalHeight * (1 - cropPercent);
+                if (sHeight <= 0) return;
+
+                const dWidth = sWidth * scale;
+                const dHeight = sHeight * scale;
+                const x = W() * (l.x / 100);
+                const y = H() * (l.y / 100);
+                
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+
+                ctx.save();
+                ctx.translate(x, y - yOffset);
+                ctx.rotate((l.rot * Math.PI) / 180); 
+                ctx.scale(l.flip ? -1 : 1, 1);
+                ctx.drawImage(l.img, 0, 0, sWidth, sHeight, -dWidth / 2, -dHeight / 2, dWidth, dHeight);
+                ctx.restore();
+            });
+
+            textLayers.forEach(t => {
+                if (!t.text.trim()) return;
+                const fontPx = t.size * (W() / 800);
+                ctx.font = `700 ${fontPx}px 'Poppins', 'Arial Black', sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.lineWidth = fontPx * 0.12;
+                ctx.fillStyle = t.color === 'white' ? '#ffffff' : '#000000';
+                ctx.strokeStyle = t.color === 'white' ? '#000000' : '#ffffff';
+                const lines = t.text.split('\n'), lineHeight = fontPx * 1.1;
+                const totalHeight = lines.length * lineHeight, startY = H() * (t.y / 100) - totalHeight / 2;
+                lines.forEach((line, i) => {
+                    const y = startY + i * lineHeight + lineHeight / 2;
+                    ctx.strokeText(line, W() * (t.x / 100), y);
+                    ctx.fillText(line, W() * (t.x / 100), y);
+                });
+            });
+
+            const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#0d6efd';
+
+            if (activeLayer !== null && layers[activeLayer]) {
+                const l = layers[activeLayer];
+                const scale = l.size / 100;
+                const cropPercent = (l.cropY || 0) / 100;
+                const w = l.img.naturalWidth * scale;
+                const h = l.img.naturalHeight * (1 - cropPercent) * scale;
+                const x = W() * (l.x / 100);
+                const y = H() * (l.y / 100);
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                
+                ctx.save();
+                ctx.translate(x, y - yOffset);
+                ctx.rotate((l.rot * Math.PI) / 180);
+                ctx.strokeStyle = highlightColor; ctx.lineWidth = 2; ctx.strokeRect(-w/2, -h/2, w, h);
+                ctx.fillStyle = highlightColor;
+                const ho = HANDLE_SIZE / 2;
+                ctx.fillRect(-w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(-w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.restore();
+            }
+            
+            if (activeTextLayer !== null && textLayers[activeTextLayer]) {
+                const bounds = getTextBounds(textLayers[activeTextLayer]);
+                ctx.strokeStyle = highlightColor; ctx.lineWidth = 2;
+                ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+                ctx.fillStyle = highlightColor;
+                const ho = HANDLE_SIZE / 2;
+                ctx.fillRect(bounds.x-ho, bounds.y-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(bounds.x+bounds.width-ho, bounds.y-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(bounds.x-ho, bounds.y+bounds.height-ho, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.fillRect(bounds.x+bounds.width-ho, bounds.y+bounds.height-ho, HANDLE_SIZE, HANDLE_SIZE);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) return toast('Unsupported file type');
+            if (file.size > 10 * 1024 * 1024) return toast('File > 10 MB');
+            const image = new Image();
+            image.onload = () => {
+                img = image;
+                resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
+                preview.classList.remove('no-image');
+                document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
+                fitCanvasToContainer();
+                updateAllControls();
+                draw();
+            };
+            image.src = URL.createObjectURL(file);
+        }
+        
+        function addImageLayer(image, src) {
+            if (layers.length >= 10) return toast('Maximum 10 layers allowed');
+            layers.push({ img: image, src: src, x: 50, y: 50, size: 100, rot: 0, flip: false, cropY: 0 });
+            selectLayer(layers.length - 1);
+        }
+
+        function getCanvasPoint(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: (clientX - rect.left) / rect.width * W(), y: (clientY - rect.top) / rect.height * H() };
+        }
+
+        function getHandleAtPoint(point, bounds, rotation = 0) {
+            const cx = bounds.cx;
+            const cy = bounds.cy;
+            const handleRadius = HANDLE_SIZE;
+            const handles = {
+                tl: {x: -bounds.width/2, y: -bounds.height/2}, tr: {x: bounds.width/2, y: -bounds.height/2},
+                bl: {x: -bounds.width/2, y: bounds.height/2}, br: {x: bounds.width/2, y: bounds.height/2}
+            };
+            for (const name in handles) {
+                const handle = handles[name];
+                const angle = rotation * Math.PI / 180;
+                const rX = handle.x * Math.cos(angle) - handle.y * Math.sin(angle);
+                const rY = handle.x * Math.sin(angle) + handle.y * Math.cos(angle);
+                if (Math.hypot(point.x - (cx + rX), point.y - (cy + rY)) < handleRadius) return name;
+            }
+            return null;
+        }
+
+        function handleInteractionStart(e) {
+            if (!img) return;
+            e.preventDefault();
+            const point = getCanvasPoint(e);
+            interaction.startX = point.x; interaction.startY = point.y;
+            if (activeLayer !== null) {
+                const l = layers[activeLayer];
+                const scale = l.size / 100;
+                const cropPercent = (l.cropY || 0) / 100;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const bounds = { 
+                    width: l.img.naturalWidth * scale, 
+                    height: l.img.naturalHeight * (1 - cropPercent) * scale, 
+                    cx: W() * (l.x / 100), 
+                    cy: H() * (l.y / 100) - yOffset
+                };
+                const handle = getHandleAtPoint(point, bounds, l.rot);
+                if (handle) {
+                    interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    return;
+                }
+            }
+            if (activeTextLayer !== null) {
+                const t = textLayers[activeTextLayer];
+                const bounds = getTextBounds(t);
+                if (point.x > bounds.x && point.x < bounds.x + bounds.width && point.y > bounds.y && point.y < bounds.y + bounds.height) {
+                     selectTextLayer(activeTextLayer);
+                     interaction = { active: true, type: 'dragText', index: activeTextLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
+                     return;
+                }
+            }
+            for (let i = layers.length - 1; i >= 0; i--) {
+                const l = layers[i];
+                const scale = l.size / 100;
+                const cropPercent = (l.cropY || 0) / 100;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+
+                const dx = point.x - W()*(l.x/100);
+                const dy = point.y - (H()*(l.y/100) - yOffset);
+
+                const angle = -l.rot * Math.PI / 180;
+                const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+                const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+                
+                const w = l.img.naturalWidth * scale;
+                const h = l.img.naturalHeight * (1 - cropPercent) * scale;
+                
+                if (Math.abs(localX) < w/2 && Math.abs(localY) < h/2) {
+                    selectLayer(i);
+                    interaction = { active: true, type: 'dragLayer', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    return;
+                }
+            }
+            for (let i = textLayers.length - 1; i >= 0; i--) {
+                const bounds = getTextBounds(textLayers[i]);
+                if (point.x > bounds.x && point.x < bounds.x+bounds.width && point.y > bounds.y && point.y < bounds.y+bounds.height) {
+                    selectTextLayer(i);
+                    interaction = { active: true, type: 'dragText', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(textLayers[i])) };
+                    return;
+                }
+            }
+            deselectAll();
+        }
+
+        function handleInteractionMove(e) {
+            if (!interaction.active) return;
+            e.preventDefault();
+            const point = getCanvasPoint(e);
+            const dx = point.x - interaction.startX, dy = point.y - interaction.startY;
+            const iState = interaction.initialState;
+            const layer = (interaction.type.includes('Layer')) ? layers[interaction.index] : textLayers[interaction.index];
+            if (interaction.type.startsWith('drag')) {
+                layer.x = iState.x + (dx / W()) * 100;
+                layer.y = iState.y + (dy / H()) * 100;
+            } else if (interaction.type.startsWith('resize')) {
+                const l = layer;
+                const scale = l.size / 100;
+                const cropPercent = (l.cropY || 0) / 100;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const cx = W() * (iState.x / 100);
+                const cy = H() * (iState.y / 100) - yOffset;
+                const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
+                const currentDist = Math.hypot(point.x - cx, point.y - cy);
+                if (initialDist > 1) layer.size = iState.size * (currentDist / initialDist);
+            }
+            updateAllControls(); draw();
+        }
+        
+        function handleInteractionEnd() { interaction.active = false; }
+
+        function openTemplateOverlay() {
+            templateOverlay.classList.add('visible');
+        }
+        function closeTemplateOverlay() {
+            templateOverlay.classList.remove('visible');
+        }
+        
+        function handleTemplateClick(e) {
+            if (!img) return toast('Upload an image first');
+            const templateFilename = e.currentTarget.dataset.template;
+            if (!templateFilename) return;
+
+            const image = new Image();
+            const imagePath = `./${templateFilename}`;
+            
+            image.onload = () => {
+                addImageLayer(image, imagePath);
+                closeTemplateOverlay();
+            };
+            image.src = imagePath;
+        }
+
+        function setupListeners() {
+            canvas.addEventListener('click', () => { if (!img && !interaction.active) fileInput.click(); });
+            fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+            ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
+                e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
+            }));
+            
+            document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
+
+            moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
+            closeOverlayBtn.addEventListener('click', closeTemplateOverlay);
+            templateOverlay.addEventListener('click', (e) => {
+                if (e.target === templateOverlay) { 
+                    closeTemplateOverlay();
+                }
+            });
+
+            document.getElementById('mg-template-file').addEventListener('change', e => {
+                if (!img) return toast('Upload an image first');
+                const file = e.target.files[0];
+                if (!file || file.type !== 'image/png' || file.size > 5 * 1024 * 1024) return toast('Invalid PNG file');
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const image = new Image();
+                    image.onload = () => addImageLayer(image, reader.result);
+                    image.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
+            
+            ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate'].forEach(id => document.getElementById(id).addEventListener('input', (e) => {
+                if(activeLayer === null) return;
+                const l = layers[activeLayer];
+                if(id === 'mg-pos-x') l.x = +e.target.value;
+                if(id === 'mg-pos-y') l.y = 100 - e.target.value;
+                if(id === 'mg-size') l.size = +e.target.value;
+                if(id === 'mg-crop-y') l.cropY = +e.target.value;
+                if(id === 'mg-rotate') l.rot = +e.target.value;
+                updateImageControls(); draw();
+            }));
+
+            document.getElementById('mg-rotate-icon').addEventListener('click', () => {
+                if (activeLayer !== null) {
+                    layers[activeLayer].rot = (layers[activeLayer].rot + 90) % 360;
+                    updateImageControls();
+                    draw();
+                }
+            });
+            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { layers[activeLayer].flip = !layers[activeLayer].flip; draw(); }});
+            txtArea.addEventListener('input', e => {
+                if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true);
+                if (activeTextLayer !== null) {
+                    textLayers[activeTextLayer].text = e.target.value; 
+                    refreshTextThumbs(); draw();
+                }
+            });
+            txtSizeEl.addEventListener('input', e => { if (activeTextLayer !== null) { textLayers[activeTextLayer].size = +e.target.value; updateTextControls(); draw(); }});
+            txtPosXEl.addEventListener('input', e => { if (activeTextLayer !== null) { textLayers[activeTextLayer].x = +e.target.value; updateTextControls(); draw(); }});
+            txtPosYEl.addEventListener('input', e => { if (activeTextLayer !== null) { textLayers[activeTextLayer].y = +e.target.value; updateTextControls(); draw(); }});
+            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
+            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
+            document.getElementById('mg-download').addEventListener('click', () => {
+                if (!img) return toast('Upload an image first');
+                deselectAll();
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.download = `adhd-meme.png`;
+                    link.href = canvas.toDataURL('image/png', 0.95);
+                    link.click();
+                }, 50);
+            });
+            document.getElementById('mg-share').addEventListener('click', () => {
+                if (!img) return toast('Upload an image first');
+                const memeLink = '[replace this with the image from your downloads, you wonderful, hyper-active degen]';
+                const tweet = `Got distracted & made this!\n\nCheck out: ${memeLink} \n\nhttps://adhdegens.fun/ $ADHD`;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`, '_blank');
+            });
+            canvas.addEventListener('mousedown', handleInteractionStart);
+            canvas.addEventListener('mousemove', handleInteractionMove);
+            window.addEventListener('mouseup', handleInteractionEnd);
+            canvas.addEventListener('mouseleave', handleInteractionEnd);
+            canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
+            canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
+            window.addEventListener('touchend', handleInteractionEnd);
+            window.addEventListener('resize', fitCanvasToContainer);
+        }
+
+        function resetApp() {
+            img = null; layers = []; activeLayer = null; textLayers = []; activeTextLayer = null;
+            preview.classList.add('no-image');
+            canvas.style.width = ''; canvas.style.height = '';
+            document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
+            refreshLayerUI(); refreshTextThumbs(); updateAllControls();
+            resizeCanvasCSS(800, 600); draw();
+        }
+
+        setupListeners();
+        resetApp();
+    })();
+</script>
+
+</body>
+</html>
