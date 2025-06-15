@@ -1077,7 +1077,7 @@
                 e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
             }));
             
-            document.querySelectorAll('#mg-template-grid .mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
+            document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
             moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
             closeOverlayBtn.addEventListener('click', closeTemplateOverlay);
             templateOverlay.addEventListener('click', (e) => { if (e.target === templateOverlay) closeTemplateOverlay(); });
