@@ -280,6 +280,16 @@
             .mg-preview-wrapper { position: sticky; top: 1.5rem; }
         }
 
+        /* === NEW: Responsive adjustments for mobile === */
+        @media (max-width: 899px) {
+            body {
+                padding: 10px; /* Reduce outer padding on mobile */
+            }
+            #adhd-meme-generator {
+                padding: 0.5rem; /* Reduce inner padding on mobile */
+            }
+        }
+
         /* ─── Toast & Overlay ─── */
         #mg-toast {
             visibility: hidden;
@@ -374,12 +384,12 @@
                                 </label>
                             </div>
                             <div class="mg-slider" style="margin-top: 0.5rem;">
-                                <span class="mg-slider-label">Fade</span>
+                                <span class="mg-slider-label">Opacity</span>
                                 <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
                                 <span id="mg-opacity-val">100</span>
                             </div>
                             <div class="mg-slider">
-                                <span class="mg-slider-label">Shade</span>
+                                <span class="mg-slider-label">Light</span>
                                 <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
                                 <span id="mg-light-val">0</span>
                             </div>
@@ -774,7 +784,6 @@
                 const y = H() * (l.y / 100);
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 
-                // === MODIFIED: Use a temporary canvas for filters to ensure mobile compatibility ===
                 const lightValue = l.light ?? 0;
                 const needsTempCanvas = l.eraseMask || lightValue > 0;
                 let imageToDraw = l.img;
