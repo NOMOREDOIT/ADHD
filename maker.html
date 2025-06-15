@@ -280,13 +280,17 @@
             .mg-preview-wrapper { position: sticky; top: 1.5rem; }
         }
 
-        /* === NEW: Responsive adjustments for mobile === */
+        /* === MODIFIED: Responsive adjustments for mobile === */
         @media (max-width: 899px) {
             body {
-                padding: 10px; /* Reduce outer padding on mobile */
+                padding: 0; /* Remove outer padding on mobile */
+            }
+            .window {
+                border: none; /* Remove the window border */
+                box-shadow: none; /* Remove the window shadow */
             }
             #adhd-meme-generator {
-                padding: 0.5rem; /* Reduce inner padding on mobile */
+                padding: 0.5rem; /* Keep a small inner padding for content spacing */
             }
         }
 
