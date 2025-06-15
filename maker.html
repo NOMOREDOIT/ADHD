@@ -932,6 +932,14 @@
             draw();
         }
 
+        // --- NEW --- Helper function to get midpoint of two touches
+        function getMidpoint(t1, t2) {
+            return {
+                x: (t1.clientX + t2.clientX) / 2,
+                y: (t1.clientY + t2.clientY) / 2,
+            };
+        }
+
         function getCanvasPoint(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -955,31 +963,33 @@
             return null;
         }
 
-        // --- UPDATED --- Now handles two-finger rotation and scaling
+        // --- UPDATED --- Handles all gesture logic
         function handleInteractionStart(e) {
             if (!img) {
                 fileInput.click();
                 return;
             }
 
+            // Two-finger gesture for move, scale, and rotate
             if (e.touches && e.touches.length === 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory();
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 
-                // --- NEW --- Calculate initial angle for rotation
                 const dx = t2.clientX - t1.clientX;
                 const dy = t2.clientY - t1.clientY;
                 const initialAngle = Math.atan2(dy, dx);
                 const initialDist = Math.hypot(dx, dy);
+                const initialMidpoint = getMidpoint(t1, t2);
 
                 interaction = {
                     active: true,
                     type: 'pinchLayer',
                     index: activeLayer,
                     initialDist: initialDist,
-                    initialAngle: initialAngle, // Store initial angle
+                    initialAngle: initialAngle,
+                    initialMidpoint: initialMidpoint,
                     initialState: JSON.parse(JSON.stringify(layers[activeLayer]))
                 };
                 return;
@@ -999,6 +1009,9 @@
             }
 
             interaction.startX = point.x; interaction.startY = point.y;
+            const isTouchEvent = !!e.touches;
+
+            // --- NEW --- Logic for global dragging of active layer
             if (activeLayer !== null) {
                 const l = layers[activeLayer];
                 const scale = l.size / 100;
@@ -1008,8 +1021,6 @@
                     width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, 
                     cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
                 };
-
-                const isTouchEvent = !!e.touches;
                 const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
                 const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
                 
@@ -1017,8 +1028,13 @@
                     interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
+                
+                // If no handle is touched and a layer is active, start dragging from anywhere.
+                interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                return;
             }
             
+            // If no layer is active, perform hit-test to find one.
             for (let i = layers.length - 1; i >= 0; i--) {
                 const l = layers[i];
                 const scale = l.size / 100; const cropPercent = (l.cropY || 0) / 100;
@@ -1034,55 +1050,35 @@
                     return;
                 }
             }
-            for (let i = textLayers.length - 1; i >= 0; i--) {
-                const t = textLayers[i];
-                if (!t.text.trim()) continue;
-
-                const bounds = getTextBounds(t);
-                const isTouchEvent = !!e.touches;
-                const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
-                const handle = getHandleAtPoint(point, bounds, 0, resizeRadius);
-
-                if (handle) {
-                    selectTextLayer(i);
-                    interaction = {
-                        active: true,
-                        type: 'resizeText',
-                        index: i,
-                        handle: handle,
-                        startX: point.x,
-                        startY: point.y,
-                        initialState: JSON.parse(JSON.stringify(t))
-                    };
-                    return;
-                }
-
-                if (point.x > bounds.x && point.x < bounds.x + bounds.width && point.y > bounds.y && point.y < bounds.y + bounds.height) {
-                    selectTextLayer(i);
-                    interaction = { active: true, type: 'dragText', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(textLayers[i])) };
-                    return;
-                }
-            }
             deselectAll();
         }
         
-        // --- UPDATED --- Now handles two-finger rotation and scaling
         function handleInteractionMove(e) {
             e.preventDefault();
 
+            // --- NEW --- Full two-finger move/scale/rotate logic
             if (interaction.active && interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
 
-                // --- NEW --- Calculate current angle and delta for rotation
+                // Translation
+                const currentMidpoint = getMidpoint(t1, t2);
+                const deltaX = currentMidpoint.x - interaction.initialMidpoint.x;
+                const deltaY = currentMidpoint.y - interaction.initialMidpoint.y;
+                const rect = canvas.getBoundingClientRect();
+                l.x = interaction.initialState.x + (deltaX / rect.width) * 100;
+                l.y = interaction.initialState.y + (deltaY / rect.height) * 100;
+
                 const currentDx = t2.clientX - t1.clientX;
                 const currentDy = t2.clientY - t1.clientY;
+
+                // Rotation
                 const currentAngle = Math.atan2(currentDy, currentDx);
                 const deltaAngle = currentAngle - interaction.initialAngle;
-                l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI); // Convert radians to degrees
+                l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI);
 
-                // Scaling logic (as before)
+                // Scaling
                 const currentDist = Math.hypot(currentDx, currentDy);
                 if (interaction.initialDist > 1) {
                     const scaleFactor = currentDist / interaction.initialDist;
@@ -1132,9 +1128,8 @@
         }
         
         function handleInteractionEnd() { 
-             if (interaction.active && (interaction.type === 'brush' || interaction.type === 'pinchLayer')) {
-                // History for brush is pushed here, for pinch it was pushed at the start
-                if(interaction.type === 'brush') pushStateToHistory();
+             if (interaction.active && interaction.type === 'brush') {
+                pushStateToHistory();
             }
             interaction.active = false;
         }
@@ -1223,7 +1218,7 @@
             document.getElementById('mg-rotate-icon').addEventListener('click', () => {
                 if (activeLayer !== null) { 
                     pushStateToHistory(); 
-                    layers[activeLayer].rot = (layers[activeLayer].rot + 90) % 360; 
+                    layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; 
                     updateImageControls(); 
                     draw(); 
                     toast('Rotated 90°');
