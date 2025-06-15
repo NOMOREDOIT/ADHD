@@ -924,7 +924,16 @@
         }
 
         function handleInteractionStart(e) {
-            if (!img) return;
+            // FIX: Explicitly handle tap-to-upload on mobile
+            if (!img) {
+                // Only trigger for touch events to avoid double-opening on desktop
+                if(e.type === 'touchstart') {
+                    e.preventDefault();
+                    fileInput.click();
+                }
+                return;
+            }
+
             e.preventDefault();
             const point = getCanvasPoint(e);
             
