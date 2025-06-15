@@ -374,12 +374,12 @@
                                 </label>
                             </div>
                             <div class="mg-slider" style="margin-top: 0.5rem;">
-                                <span class="mg-slider-label">Fade</span>
+                                <span class="mg-slider-label">Opacity</span>
                                 <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
                                 <span id="mg-opacity-val">100</span>
                             </div>
                             <div class="mg-slider">
-                                <span class="mg-slider-label">Darken</span>
+                                <span class="mg-slider-label">Light</span>
                                 <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
                                 <span id="mg-light-val">0</span>
                             </div>
@@ -760,8 +760,8 @@
 
                 ctx.save();
                 
-                const lightValue = l.light ?? 0; // 0-100, where 100 is max darkness
-                const brightness = 100 - lightValue; // Map to 100%-0%
+                const lightValue = l.light ?? 0;
+                const brightness = 100 - lightValue;
                 ctx.filter = `brightness(${brightness}%)`;
                 
                 ctx.globalAlpha = (l.opacity ?? 100) / 100;
@@ -916,7 +916,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2; // BUG FIX: Was 'l', now 'layer'
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -1060,10 +1060,18 @@
             deselectAll();
         }
         
+        // === MODIFIED: This is the fix for the "sticky" mobile sliders ===
         function handleInteractionMove(e) {
-            e.preventDefault();
+            // Only prevent default behavior if we are actively interacting with the canvas
+            if (interaction.active) {
+                e.preventDefault();
+            } else {
+                // Otherwise, allow default behaviors like scrolling or sliding inputs
+                interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); 
+                return;
+            }
 
-            if (interaction.active && interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
+            if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const rect = canvas.getBoundingClientRect();
@@ -1089,9 +1097,6 @@
                 return;
             }
 
-            if (!interaction.active) {
-                interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return;
-            }
             const point = getCanvasPoint(e);
             
             if (interaction.type === 'brush') {
