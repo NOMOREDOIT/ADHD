@@ -475,7 +475,8 @@
     </section>
 </div>
 
-<!-- === MODIFIED AND RESTORED TEMPLATE OVERLAY === -->
+<div id="mg-toast"></div>
+
 <div id="mg-template-overlay">
     <div id="mg-template-grid-wrapper" class="window">
         <button id="mg-template-overlay-close">X</button>
@@ -773,27 +774,38 @@
                 const y = H() * (l.y / 100);
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 
+                // === MODIFIED: Use a temporary canvas for filters to ensure mobile compatibility ===
+                const lightValue = l.light ?? 0;
+                const needsTempCanvas = l.eraseMask || lightValue > 0;
                 let imageToDraw = l.img;
-                if (l.eraseMask) {
+
+                if (needsTempCanvas) {
                     if (tempLayerCanvas.width !== l.img.naturalWidth || tempLayerCanvas.height !== l.img.naturalHeight) {
                         tempLayerCanvas.width = l.img.naturalWidth;
                         tempLayerCanvas.height = l.img.naturalHeight;
                     } else {
                         tempLayerCtx.clearRect(0, 0, tempLayerCanvas.width, tempLayerCanvas.height);
                     }
+                    
                     tempLayerCtx.drawImage(l.img, 0, 0);
-                    tempLayerCtx.globalCompositeOperation = 'destination-out';
-                    tempLayerCtx.drawImage(l.eraseMask, 0, 0);
-                    tempLayerCtx.globalCompositeOperation = 'source-over';
+
+                    if (l.eraseMask) {
+                        tempLayerCtx.globalCompositeOperation = 'destination-out';
+                        tempLayerCtx.drawImage(l.eraseMask, 0, 0);
+                        tempLayerCtx.globalCompositeOperation = 'source-over';
+                    }
+                    
+                    if (lightValue > 0) {
+                        tempLayerCtx.globalCompositeOperation = 'source-atop';
+                        tempLayerCtx.fillStyle = `rgba(0, 0, 0, ${lightValue / 100})`;
+                        tempLayerCtx.fillRect(0, 0, tempLayerCanvas.width, tempLayerCanvas.height);
+                        tempLayerCtx.globalCompositeOperation = 'source-over';
+                    }
+
                     imageToDraw = tempLayerCanvas;
                 }
 
                 ctx.save();
-                
-                const lightValue = l.light ?? 0;
-                const brightness = 100 - lightValue;
-                ctx.filter = `brightness(${brightness}%)`;
-                
                 ctx.globalAlpha = (l.opacity ?? 100) / 100;
                 ctx.translate(x, y - yOffset);
                 ctx.rotate((l.rot * Math.PI) / 180); 
