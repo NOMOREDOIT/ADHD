@@ -924,16 +924,14 @@
         }
 
         function handleInteractionStart(e) {
-            // FIX: Explicitly handle tap-to-upload on mobile
+            // If there's no image, do nothing here. Let the separate 'click' 
+            // listener handle the upload on both desktop and mobile.
             if (!img) {
-                // Only trigger for touch events to avoid double-opening on desktop
-                if(e.type === 'touchstart') {
-                    e.preventDefault();
-                    fileInput.click();
-                }
                 return;
             }
 
+            // If we have an image, we are starting an interaction (drag, resize, etc.),
+            // so we prevent default browser actions like scrolling.
             e.preventDefault();
             const point = getCanvasPoint(e);
             
