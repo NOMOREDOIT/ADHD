@@ -6,8 +6,11 @@
     <title>ADHD-ifier</title>
     <link rel="icon" type="image/png" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <style>
+    
+    <!-- ADDED: heic2any library for converting iPhone photos -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
+    <style>
         iframe[id^="firebase-app-check-debug-token"] {
             display: none !important;
         }
@@ -243,6 +246,7 @@
             background: var(--light); border: 2px solid var(--ink);
             padding: .5rem 1rem; color: var(--ink);
             font-size: 1rem;
+            z-index: 2000; /* Ensure toast is on top */
             box-shadow: 4px 4px 0 var(--ink);
         }
         #mg-template-overlay {
@@ -812,9 +816,35 @@
             }
         }
 
-        function handleFile(file) {
-            if (!file || !file.type.startsWith('image/')) return toast('Unsupported file type');
-            if (file.size > 10 * 1024 * 1024) return toast('File > 10 MB');
+        // --- REPLACED with robust version for HEIC conversion ---
+        async function handleFile(file) {
+            if (!file) return;
+
+            let fileToProcess = file;
+
+            // Check if the file is likely a HEIC file by its extension
+            if (/\.heic$|\.heif$/i.test(file.name)) {
+                toast('Converting HEIC image...');
+                try {
+                    const conversionResult = await heic2any({
+                        blob: file,
+                        toType: "image/png",
+                        quality: 0.9,
+                    });
+                    
+                    fileToProcess = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+
+                } catch (error) {
+                    console.error(error);
+                    toast('Could not convert HEIC file.');
+                    return;
+                }
+            }
+
+            if (fileToProcess.size > 10 * 1024 * 1024) {
+                return toast('File is too large (> 10 MB)');
+            }
+
             const image = new Image();
             image.onload = () => {
                 img = image;
@@ -825,9 +855,13 @@
                 historyStack = [];
                 updateAllControls();
                 draw();
+                URL.revokeObjectURL(image.src); // Clean up memory
             };
-            image.src = URL.createObjectURL(file);
-            // FIX: Reset the file input value to allow selecting the same file again
+            image.onerror = () => {
+                toast('Could not load image file.');
+            };
+            
+            image.src = URL.createObjectURL(fileToProcess);
             fileInput.value = null;
         }
         
@@ -925,16 +959,13 @@
             return null;
         }
 
-        // --- CHANGE #1 START ---
+        // --- FIXED: Unified logic for mobile and desktop upload trigger ---
         function handleInteractionStart(e) {
-            // If there's no base image, this interaction is for triggering the file upload.
             if (!img) {
-                // We don't prevent default, just trigger the hidden input and stop.
                 fileInput.click();
                 return;
             }
 
-            // If an image *does* exist, THEN we prevent default to handle dragging/resizing.
             e.preventDefault();
             const point = getCanvasPoint(e);
             
@@ -1010,7 +1041,6 @@
             }
             deselectAll();
         }
-        // --- CHANGE #1 END ---
 
         function handleInteractionMove(e) {
             e.preventDefault();
@@ -1081,14 +1111,12 @@
             image.src = templateFilename;
         }
 
-        // --- CHANGE #2 START ---
+        // --- FIXED: Cleaned up listeners ---
         function setupListeners() {
-            // REMOVED: The conflicting 'click' listener. The logic is now in handleInteractionStart.
             fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
             ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
                 e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
             }));
-        // --- CHANGE #2 END ---
             
             document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
             moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
