@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
-    <!-- ADDED: heic2any library for converting iPhone photos -->
+    <!-- heic2any library for converting iPhone photos -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
     <style>
@@ -474,17 +474,17 @@
         let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
         let interaction = { active: false };
 
-        let isErasing = false;
-        let isUneraseMode = false;
+        let brushMode = 'none'; // 'none', 'erase', or 'unerase'
         let eraserSize = 100;
         const tempLayerCanvas = document.createElement('canvas');
         const tempLayerCtx = tempLayerCanvas.getContext('2d');
 
-        // === Global History System ===
         let historyStack = [];
         const HISTORY_LIMIT = 50; 
 
         const HANDLE_SIZE = 12;
+        // --- NEW --- Larger invisible radius for touch targets
+        const TOUCH_HANDLE_RADIUS = 40; 
         const DPR = window.devicePixelRatio || 1;
 
         function resizeCanvasCSS(w, h) {
@@ -517,7 +517,7 @@
         }
 
         function updateCursor() {
-            canvas.style.cursor = isErasing && activeLayer !== null ? 'none' : '';
+            canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
         }
 
         function updateAllControls() { updateImageControls(); updateTextControls(); }
@@ -532,13 +532,13 @@
             document.getElementById('mg-rotate-icon').disabled = disabled;
             document.getElementById('mg-flip-icon').disabled = disabled;
 
-            const eraseModeDisabled = disabled || !isErasing;
+            const brushToolsDisabled = disabled || brushMode === 'none';
             eraseToggleBtn.disabled = disabled;
-            uneraseToggleBtn.disabled = eraseModeDisabled;
-            eraseSizeSlider.disabled = eraseModeDisabled;
+            uneraseToggleBtn.disabled = disabled;
+            eraseSizeSlider.disabled = brushToolsDisabled;
 
-            eraseToggleBtn.classList.toggle('active', isErasing && !disabled);
-            uneraseToggleBtn.classList.toggle('active', isUneraseMode && !eraseModeDisabled);
+            eraseToggleBtn.classList.toggle('active', brushMode === 'erase' && !disabled);
+            uneraseToggleBtn.classList.toggle('active', brushMode === 'unerase' && !disabled);
             
             undoBtn.disabled = historyStack.length === 0;
 
@@ -554,6 +554,8 @@
                 document.getElementById('mg-crop-y-val').textContent = Math.round(l.cropY);
                 document.getElementById('mg-rotate').value = l.rot;
                 document.getElementById('mg-rotate-val').textContent = Math.round(l.rot);
+            }
+            if (!brushToolsDisabled) {
                 eraseSizeSlider.value = eraserSize;
                 eraseSizeVal.textContent = eraserSize;
             }
@@ -582,21 +584,18 @@
         }
         
         function selectLayer(i) {
-            if (isErasing && activeLayer !== i) {
-                isErasing = false; isUneraseMode = false;
-            }
             activeLayer = i; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
 
         function selectTextLayer(i) {
-            if (isErasing) { isErasing = false; isUneraseMode = false; }
+            brushMode = 'none';
             activeTextLayer = i; activeLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
         
         function deselectAll() {
-            if (isErasing) { isErasing = false; isUneraseMode = false; }
+            brushMode = 'none';
             activeLayer = null; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
@@ -802,11 +801,12 @@
                 }
             }
             
-            if (isErasing && activeLayer !== null && interaction.lastPoint) {
+            if (brushMode !== 'none' && activeLayer !== null && interaction.lastPoint) {
                 const point = interaction.lastPoint;
+                const isUnerase = brushMode === 'unerase';
                 ctx.save();
-                ctx.strokeStyle = isUneraseMode ? '#007BFF' : '#000000';
-                ctx.fillStyle = isUneraseMode ? 'rgba(0, 123, 255, 0.3)' : 'rgba(255,255,255,0.5)';
+                ctx.strokeStyle = isUnerase ? '#007BFF' : '#000000';
+                ctx.fillStyle = isUnerase ? 'rgba(0, 123, 255, 0.3)' : 'rgba(255,255,255,0.5)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(point.x, point.y, eraserSize / 2, 0, Math.PI * 2);
@@ -816,13 +816,11 @@
             }
         }
 
-        // --- REPLACED with robust version for HEIC conversion ---
         async function handleFile(file) {
             if (!file) return;
 
             let fileToProcess = file;
 
-            // Check if the file is likely a HEIC file by its extension
             if (/\.heic$|\.heif$/i.test(file.name)) {
                 toast('Converting HEIC image...');
                 try {
@@ -855,7 +853,7 @@
                 historyStack = [];
                 updateAllControls();
                 draw();
-                URL.revokeObjectURL(image.src); // Clean up memory
+                URL.revokeObjectURL(image.src);
             };
             image.onerror = () => {
                 toast('Could not load image file.');
@@ -924,7 +922,7 @@
                     gradient.addColorStop(1, 'rgba(0,0,0,0)');
                     maskCtx.fillStyle = gradient;
                     maskCtx.fillRect(x - brushRadius, y - brushRadius, brushRadius * 2, brushRadius * 2);
-                } else {
+                } else { // unerase
                     maskCtx.globalCompositeOperation = 'destination-out';
                     maskCtx.fillStyle = 'black';
                     maskCtx.beginPath();
@@ -942,9 +940,9 @@
             return { x: (clientX - rect.left) / rect.width * W(), y: (clientY - rect.top) / rect.height * H() };
         }
 
-        function getHandleAtPoint(point, bounds, rotation = 0) {
+        // --- UPDATED --- Accepts a radius for touch events
+        function getHandleAtPoint(point, bounds, rotation = 0, radius = HANDLE_SIZE) {
             const cx = bounds.cx; const cy = bounds.cy;
-            const handleRadius = HANDLE_SIZE;
             const handles = {
                 tl: {x: -bounds.width/2, y: -bounds.height/2}, tr: {x: bounds.width/2, y: -bounds.height/2},
                 bl: {x: -bounds.width/2, y: bounds.height/2}, br: {x: bounds.width/2, y: bounds.height/2}
@@ -954,29 +952,45 @@
                 const angle = rotation * Math.PI / 180;
                 const rX = handle.x * Math.cos(angle) - handle.y * Math.sin(angle);
                 const rY = handle.x * Math.sin(angle) + handle.y * Math.cos(angle);
-                if (Math.hypot(point.x - (cx + rX), point.y - (cy + rY)) < handleRadius) return name;
+                if (Math.hypot(point.x - (cx + rX), point.y - (cy + rY)) < radius) return name;
             }
             return null;
         }
 
-        // --- FIXED: Unified logic for mobile and desktop upload trigger ---
+        // --- UPDATED --- Handles pinch-to-zoom and larger touch corners
         function handleInteractionStart(e) {
             if (!img) {
                 fileInput.click();
                 return;
             }
 
+            // --- NEW --- Pinch-to-zoom gesture detection
+            if (e.touches && e.touches.length === 2 && activeLayer !== null) {
+                e.preventDefault();
+                pushStateToHistory();
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const initialDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                interaction = {
+                    active: true,
+                    type: 'pinchLayer',
+                    index: activeLayer,
+                    initialDist: initialDist,
+                    initialState: JSON.parse(JSON.stringify(layers[activeLayer]))
+                };
+                return; // Prioritize pinch gesture
+            }
+            
             e.preventDefault();
             const point = getCanvasPoint(e);
             
-            if (!isErasing) {
+            if (brushMode === 'none' && (interaction.type !== 'pinchLayer')) {
                  pushStateToHistory();
             }
 
-            if (isErasing && activeLayer !== null) {
-                const mode = isUneraseMode ? 'unerase' : 'erase';
-                interaction = { active: true, type: 'eraseLayer', mode: mode, lastPoint: point };
-                applyErasure(point, point, mode);
+            if (brushMode !== 'none' && activeLayer !== null) {
+                interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
+                applyErasure(point, point, brushMode);
                 return;
             }
 
@@ -990,7 +1004,12 @@
                     width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, 
                     cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
                 };
-                const handle = getHandleAtPoint(point, bounds, l.rot);
+
+                // --- NEW --- Use larger radius for touch events
+                const isTouchEvent = !!e.touches;
+                const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
+                const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
+                
                 if (handle) {
                     interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
@@ -1017,7 +1036,9 @@
                 if (!t.text.trim()) continue;
 
                 const bounds = getTextBounds(t);
-                const handle = getHandleAtPoint(point, bounds, 0); // No rotation for text
+                const isTouchEvent = !!e.touches;
+                const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
+                const handle = getHandleAtPoint(point, bounds, 0, resizeRadius);
 
                 if (handle) {
                     selectTextLayer(i);
@@ -1041,15 +1062,33 @@
             }
             deselectAll();
         }
-
+        
+        // --- UPDATED --- Handles pinch-to-zoom movement
         function handleInteractionMove(e) {
             e.preventDefault();
+
+            // --- NEW --- Handle pinch-to-zoom movement
+            if (interaction.active && interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
+                const l = layers[interaction.index];
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+                if (interaction.initialDist > 1) {
+                    const scaleFactor = currentDist / interaction.initialDist;
+                    l.size = interaction.initialState.size * scaleFactor;
+                }
+                updateAllControls();
+                draw();
+                return; // Exit after handling pinch
+            }
+
             if (!interaction.active) {
-                interaction.lastPoint = getCanvasPoint(e); if (isErasing) draw(); return;
+                interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return;
             }
             const point = getCanvasPoint(e);
             
-            if (interaction.type === 'eraseLayer') {
+            if (interaction.type === 'brush') {
                 applyErasure(interaction.lastPoint, point, interaction.mode);
             } else {
                 const dx = point.x - interaction.startX;
@@ -1064,25 +1103,15 @@
                     const t = textLayers[interaction.index];
                     t.x = iState.x + (dx / W()) * 100;
                     t.y = iState.y + (dy / H()) * 100;
-                } else if (interaction.type === 'resizeLayer') {
-                    const l = layers[interaction.index];
-                    const scale = iState.size / 100;
-                    const cropPercent = (iState.cropY || 0) / 100;
-                    const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                    const cx = W() * (iState.x / 100);
-                    const cy = H() * (iState.y / 100) - yOffset;
-                    const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
-                    const currentDist = Math.hypot(point.x - cx, point.y - cy);
-                    if (initialDist > 1) l.size = iState.size * (currentDist / initialDist);
-                } else if (interaction.type === 'resizeText') {
-                    const t = textLayers[interaction.index];
+                } else if (interaction.type === 'resizeLayer' || interaction.type === 'resizeText') {
+                    const item = (interaction.type === 'resizeLayer') ? layers[interaction.index] : textLayers[interaction.index];
                     const cx = W() * (iState.x / 100);
                     const cy = H() * (iState.y / 100);
                     const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
                     const currentDist = Math.hypot(point.x - cx, point.y - cy);
                     if (initialDist > 1) {
                         const newSize = iState.size * (currentDist / initialDist);
-                        t.size = Math.max(5, newSize); // Prevent size from becoming too small
+                        item.size = Math.max(5, newSize);
                     }
                 }
                 
@@ -1093,9 +1122,10 @@
         }
         
         function handleInteractionEnd() { 
-             if (interaction.active && interaction.type === 'eraseLayer') {
+             if (interaction.active && interaction.type === 'brush') {
                 pushStateToHistory();
             }
+            // A pinch is an atomic action, history is pushed at the start
             interaction.active = false;
         }
 
@@ -1111,7 +1141,6 @@
             image.src = templateFilename;
         }
 
-        // --- FIXED: Cleaned up listeners ---
         function setupListeners() {
             fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
             ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
@@ -1138,23 +1167,28 @@
 
             eraseToggleBtn.addEventListener('click', () => {
                 if (activeLayer !== null) {
-                    isErasing = !isErasing;
-                    if (!isErasing) isUneraseMode = false;
-                    updateImageControls();
-                    if (isErasing) { toast('Eraser Mode On'); } else { toast('Eraser Mode Off'); }
+                    brushMode = brushMode === 'erase' ? 'none' : 'erase';
+                    toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off');
+                    updateAllControls();
+                    draw();
                 }
             });
             uneraseToggleBtn.addEventListener('click', () => {
-                if (activeLayer !== null && isErasing) { 
-                    isUneraseMode = !isUneraseMode; 
-                    updateImageControls(); 
-                    if (isUneraseMode) { toast('Un-erase Mode On'); } else { toast('Un-erase Mode Off'); }
+                if (activeLayer !== null) { 
+                    brushMode = brushMode === 'unerase' ? 'none' : 'unerase';
+                    toast(brushMode === 'unerase' ? 'Un-erase Mode On' : 'Un-erase Mode Off');
+                    updateAllControls();
+                    draw();
                 }
             });
             undoBtn.addEventListener('click', performUndo);
 
             eraseSizeSlider.addEventListener('input', (e) => {
-                if (activeLayer !== null && isErasing) { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; }
+                if (brushMode !== 'none') {
+                    eraserSize = +e.target.value;
+                    eraseSizeVal.textContent = eraserSize;
+                    draw();
+                }
             });
 
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
@@ -1237,7 +1271,7 @@
             canvas.addEventListener('mouseleave', () => {
                 if (interaction.active) handleInteractionEnd();
                 interaction.lastPoint = null;
-                if (isErasing) draw();
+                if (brushMode !== 'none') draw();
             });
             canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
             canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
@@ -1253,9 +1287,10 @@
 
         function resetApp() {
             img = null; layers = []; activeLayer = null; textLayers = []; activeTextLayer = null;
-            isErasing = false; isUneraseMode = false; eraserSize = 100;
+            brushMode = 'none';
+            eraserSize = 100;
             historyStack = [];
-            fileInput.value = null; // Also reset file input on app reset
+            fileInput.value = null;
 
             preview.classList.add('no-image');
             canvas.style.width = ''; canvas.style.height = '';
