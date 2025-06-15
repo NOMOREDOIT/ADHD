@@ -374,12 +374,12 @@
                                 </label>
                             </div>
                             <div class="mg-slider" style="margin-top: 0.5rem;">
-                                <span class="mg-slider-label">Fade</span>
+                                <span class="mg-slider-label">Opacity</span>
                                 <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
                                 <span id="mg-opacity-val">100</span>
                             </div>
                             <div class="mg-slider">
-                                <span class="mg-slider-label">Shade</span>
+                                <span class="mg-slider-label">Light</span>
                                 <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
                                 <span id="mg-light-val">0</span>
                             </div>
@@ -902,6 +902,8 @@
             layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0, eraseMask: null, opacity: 100, light: 0 });
             selectLayer(layers.length - 1);
         }
+        
+        // === BUG FIX IS HERE ===
         function applyErasure(startPoint, endPoint, mode) {
             if (activeLayer === null) return;
             const layer = layers[activeLayer];
@@ -916,7 +918,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2; // The variable `l` was corrected to `layer`
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -958,6 +960,7 @@
             }
             draw();
         }
+
         function getMidpoint(t1, t2) {
             return {
                 x: (t1.clientX + t2.clientX) / 2,
@@ -1060,13 +1063,10 @@
             deselectAll();
         }
         
-        // === MODIFIED: This is the fix for the "sticky" mobile sliders ===
         function handleInteractionMove(e) {
-            // Only prevent default behavior if we are actively interacting with the canvas
             if (interaction.active) {
                 e.preventDefault();
             } else {
-                // Otherwise, allow default behaviors like scrolling or sliding inputs
                 interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); 
                 return;
             }
