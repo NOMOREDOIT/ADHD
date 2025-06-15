@@ -474,7 +474,7 @@
         let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
         let interaction = { active: false };
 
-        let brushMode = 'none'; // 'none', 'erase', or 'unerase'
+        let brushMode = 'none';
         let eraserSize = 100;
         const tempLayerCanvas = document.createElement('canvas');
         const tempLayerCtx = tempLayerCanvas.getContext('2d');
@@ -483,7 +483,6 @@
         const HISTORY_LIMIT = 50; 
 
         const HANDLE_SIZE = 12;
-        // --- NEW --- Larger invisible radius for touch targets
         const TOUCH_HANDLE_RADIUS = 40; 
         const DPR = window.devicePixelRatio || 1;
 
@@ -922,7 +921,7 @@
                     gradient.addColorStop(1, 'rgba(0,0,0,0)');
                     maskCtx.fillStyle = gradient;
                     maskCtx.fillRect(x - brushRadius, y - brushRadius, brushRadius * 2, brushRadius * 2);
-                } else { // unerase
+                } else {
                     maskCtx.globalCompositeOperation = 'destination-out';
                     maskCtx.fillStyle = 'black';
                     maskCtx.beginPath();
@@ -940,7 +939,6 @@
             return { x: (clientX - rect.left) / rect.width * W(), y: (clientY - rect.top) / rect.height * H() };
         }
 
-        // --- UPDATED --- Accepts a radius for touch events
         function getHandleAtPoint(point, bounds, rotation = 0, radius = HANDLE_SIZE) {
             const cx = bounds.cx; const cy = bounds.cy;
             const handles = {
@@ -957,28 +955,34 @@
             return null;
         }
 
-        // --- UPDATED --- Handles pinch-to-zoom and larger touch corners
+        // --- UPDATED --- Now handles two-finger rotation and scaling
         function handleInteractionStart(e) {
             if (!img) {
                 fileInput.click();
                 return;
             }
 
-            // --- NEW --- Pinch-to-zoom gesture detection
             if (e.touches && e.touches.length === 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory();
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
-                const initialDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                
+                // --- NEW --- Calculate initial angle for rotation
+                const dx = t2.clientX - t1.clientX;
+                const dy = t2.clientY - t1.clientY;
+                const initialAngle = Math.atan2(dy, dx);
+                const initialDist = Math.hypot(dx, dy);
+
                 interaction = {
                     active: true,
                     type: 'pinchLayer',
                     index: activeLayer,
                     initialDist: initialDist,
+                    initialAngle: initialAngle, // Store initial angle
                     initialState: JSON.parse(JSON.stringify(layers[activeLayer]))
                 };
-                return; // Prioritize pinch gesture
+                return;
             }
             
             e.preventDefault();
@@ -1005,7 +1009,6 @@
                     cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
                 };
 
-                // --- NEW --- Use larger radius for touch events
                 const isTouchEvent = !!e.touches;
                 const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
                 const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
@@ -1063,24 +1066,31 @@
             deselectAll();
         }
         
-        // --- UPDATED --- Handles pinch-to-zoom movement
+        // --- UPDATED --- Now handles two-finger rotation and scaling
         function handleInteractionMove(e) {
             e.preventDefault();
 
-            // --- NEW --- Handle pinch-to-zoom movement
             if (interaction.active && interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
-                const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
+                // --- NEW --- Calculate current angle and delta for rotation
+                const currentDx = t2.clientX - t1.clientX;
+                const currentDy = t2.clientY - t1.clientY;
+                const currentAngle = Math.atan2(currentDy, currentDx);
+                const deltaAngle = currentAngle - interaction.initialAngle;
+                l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI); // Convert radians to degrees
+
+                // Scaling logic (as before)
+                const currentDist = Math.hypot(currentDx, currentDy);
                 if (interaction.initialDist > 1) {
                     const scaleFactor = currentDist / interaction.initialDist;
                     l.size = interaction.initialState.size * scaleFactor;
                 }
                 updateAllControls();
                 draw();
-                return; // Exit after handling pinch
+                return;
             }
 
             if (!interaction.active) {
@@ -1122,10 +1132,10 @@
         }
         
         function handleInteractionEnd() { 
-             if (interaction.active && interaction.type === 'brush') {
-                pushStateToHistory();
+             if (interaction.active && (interaction.type === 'brush' || interaction.type === 'pinchLayer')) {
+                // History for brush is pushed here, for pinch it was pushed at the start
+                if(interaction.type === 'brush') pushStateToHistory();
             }
-            // A pinch is an atomic action, history is pushed at the start
             interaction.active = false;
         }
 
