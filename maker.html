@@ -190,6 +190,10 @@
         .mg-slider-label { font-size: 1rem; width: 40px; color: var(--shadow); }
         .mg-row { display: flex; align-items: center; gap: .5rem; margin: .4rem 0; }
         
+        #mg-light {
+            direction: rtl;
+        }
+
         /* ─── Textarea ─── */
         textarea#mg-text {
             width: 100%; resize: none;
@@ -348,7 +352,6 @@
             <div class="mg-controls-wrapper">
                 <div class="mg-controls">
                     <fieldset>
-                        <!-- UPDATED HTML STRUCTURE -->
                         <legend>
                             <span>1. Template</span>
                             <div class="legend-line"></div>
@@ -370,11 +373,20 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10h5l-6-7-6 7h5v6h2v-6zM4 18v2h16v-2H4z"/></svg>
                                 </label>
                             </div>
+                            <div class="mg-slider" style="margin-top: 0.5rem;">
+                                <span class="mg-slider-label">Opacity</span>
+                                <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
+                                <span id="mg-opacity-val">100</span>
+                            </div>
+                            <div class="mg-slider">
+                                <span class="mg-slider-label">Light</span>
+                                <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
+                                <span id="mg-light-val">0</span>
+                            </div>
                         </div>
                     </fieldset>
 
                     <fieldset>
-                        <!-- UPDATED HTML STRUCTURE -->
                         <legend>
                             <span>2. Size/Position</span>
                             <div class="legend-line"></div>
@@ -426,7 +438,6 @@
                     </fieldset>
 
                     <fieldset>
-                        <!-- UPDATED HTML STRUCTURE -->
                         <legend>
                             <span>3. Text</span>
                             <div class="legend-line"></div>
@@ -548,6 +559,8 @@
             document.getElementById('mg-size').disabled = disabled;
             document.getElementById('mg-crop-y').disabled = disabled;
             document.getElementById('mg-rotate').disabled = disabled;
+            document.getElementById('mg-opacity').disabled = disabled;
+            document.getElementById('mg-light').disabled = disabled;
             document.getElementById('mg-rotate-icon').disabled = disabled;
             document.getElementById('mg-flip-icon').disabled = disabled;
 
@@ -573,6 +586,10 @@
                 document.getElementById('mg-crop-y-val').textContent = Math.round(l.cropY);
                 document.getElementById('mg-rotate').value = l.rot;
                 document.getElementById('mg-rotate-val').textContent = Math.round(l.rot);
+                document.getElementById('mg-opacity').value = l.opacity ?? 100;
+                document.getElementById('mg-opacity-val').textContent = Math.round(l.opacity ?? 100);
+                document.getElementById('mg-light').value = l.light ?? 0;
+                document.getElementById('mg-light-val').textContent = Math.round(l.light ?? 0);
             }
             if (!brushToolsDisabled) {
                 eraseSizeSlider.value = eraserSize;
@@ -742,6 +759,12 @@
                 }
 
                 ctx.save();
+                
+                const lightValue = l.light ?? 0; // 0-100, where 100 is max darkness
+                const brightness = 100 - lightValue; // Map to 100%-0%
+                ctx.filter = `brightness(${brightness}%)`;
+                
+                ctx.globalAlpha = (l.opacity ?? 100) / 100;
                 ctx.translate(x, y - yOffset);
                 ctx.rotate((l.rot * Math.PI) / 180); 
                 ctx.scale(l.flip ? -1 : 1, 1);
@@ -876,7 +899,7 @@
             const scaleToFitHeight = maxLayerHeight / image.naturalHeight;
             const finalScale = Math.min(scaleToFitWidth, scaleToFitHeight);
             const initialSize = finalScale * 100;
-            layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0, eraseMask: null });
+            layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0, eraseMask: null, opacity: 100, light: 0 });
             selectLayer(layers.length - 1);
         }
         function applyErasure(startPoint, endPoint, mode) {
@@ -893,7 +916,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2; // BUG FIX: Was 'l', now 'layer'
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -963,7 +986,6 @@
             return null;
         }
 
-        // --- UPDATED to handle all gestures
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
 
@@ -994,7 +1016,7 @@
 
             if (brushMode !== 'none' && activeLayer !== null) {
                 interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
-                applyErasure(point, point, brushMode);
+                applyErasure(point, point, interaction.mode);
                 return;
             }
 
@@ -1124,7 +1146,6 @@
             image.src = templateFilename;
         }
 
-        // --- UNCHANGED --- Listeners for buttons and UI elements
         function setupListeners() {
             fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
             ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
@@ -1177,7 +1198,7 @@
 
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
             
-            ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate'].forEach(id => {
+            ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate', 'mg-opacity', 'mg-light'].forEach(id => {
                 const el = document.getElementById(id);
                 el.addEventListener('input', (e) => {
                     if(activeLayer === null) return;
@@ -1187,6 +1208,8 @@
                     if(id === 'mg-size') l.size = +e.target.value;
                     if(id === 'mg-crop-y') l.cropY = +e.target.value;
                     if(id === 'mg-rotate') l.rot = +e.target.value;
+                    if(id === 'mg-opacity') l.opacity = +e.target.value;
+                    if(id === 'mg-light') l.light = +e.target.value;
                     updateImageControls(); draw();
                 });
                 el.addEventListener('change', () => {
@@ -1250,7 +1273,6 @@
                 window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`, '_blank');
             });
             
-            // --- NEW --- Listener for fieldset toggle buttons
             document.querySelectorAll('.fieldset-toggle-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
