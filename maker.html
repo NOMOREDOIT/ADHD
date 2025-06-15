@@ -925,14 +925,16 @@
             return null;
         }
 
+        // --- CHANGE #1 START ---
         function handleInteractionStart(e) {
-            // If there's no image, do nothing. This allows the separate 'click'
-            // listener to handle the upload on both desktop and mobile without interference.
+            // If there's no base image, this interaction is for triggering the file upload.
             if (!img) {
+                // We don't prevent default, just trigger the hidden input and stop.
+                fileInput.click();
                 return;
             }
 
-            // If an image exists, we are interacting with layers, so prevent default actions.
+            // If an image *does* exist, THEN we prevent default to handle dragging/resizing.
             e.preventDefault();
             const point = getCanvasPoint(e);
             
@@ -1008,6 +1010,7 @@
             }
             deselectAll();
         }
+        // --- CHANGE #1 END ---
 
         function handleInteractionMove(e) {
             e.preventDefault();
@@ -1078,12 +1081,14 @@
             image.src = templateFilename;
         }
 
+        // --- CHANGE #2 START ---
         function setupListeners() {
-            canvas.addEventListener('click', () => { if (!img && !interaction.active) fileInput.click(); });
+            // REMOVED: The conflicting 'click' listener. The logic is now in handleInteractionStart.
             fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
             ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
                 e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
             }));
+        // --- CHANGE #2 END ---
             
             document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
             moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
