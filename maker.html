@@ -827,6 +827,8 @@
                 draw();
             };
             image.src = URL.createObjectURL(file);
+            // FIX: Reset the file input value to allow selecting the same file again
+            fileInput.value = null;
         }
         
         function addImageLayer(image, src) {
@@ -924,14 +926,13 @@
         }
 
         function handleInteractionStart(e) {
-            // If there's no image, do nothing here. Let the separate 'click' 
-            // listener handle the upload on both desktop and mobile.
+            // If there's no image, do nothing. This allows the separate 'click'
+            // listener to handle the upload on both desktop and mobile without interference.
             if (!img) {
                 return;
             }
 
-            // If we have an image, we are starting an interaction (drag, resize, etc.),
-            // so we prevent default browser actions like scrolling.
+            // If an image exists, we are interacting with layers, so prevent default actions.
             e.preventDefault();
             const point = getCanvasPoint(e);
             
@@ -1221,6 +1222,7 @@
             img = null; layers = []; activeLayer = null; textLayers = []; activeTextLayer = null;
             isErasing = false; isUneraseMode = false; eraserSize = 100;
             historyStack = [];
+            fileInput.value = null; // Also reset file input on app reset
 
             preview.classList.add('no-image');
             canvas.style.width = ''; canvas.style.height = '';
