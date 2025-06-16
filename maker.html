@@ -296,7 +296,8 @@
         /* --- MOBILE LAYOUT ADJUSTMENTS --- */
         @media (max-width: 899px) {
             body {
-                padding: 10px; /* Reduce outer padding on mobile */
+                /* --- MODIFIED: Remove side padding for full-width mobile view --- */
+                padding: 10px 0; 
             }
             #adhd-meme-generator {
                 padding: 0.5rem; /* Reduce inner padding on mobile */
@@ -580,12 +581,10 @@
             setTimeout(() => { t.style.opacity = 0; t.style.visibility = 'hidden'; }, 2400);
         };
         
-        // --- MODIFIED: Make canvas larger on mobile ---
         function fitCanvasToContainer() {
             if (!img) return;
             canvas.style.width = ''; canvas.style.height = '';
 
-            // Check if on mobile or desktop to adjust height
             const isMobile = window.innerWidth < 900;
             const heightMultiplier = isMobile ? 0.95 : 0.85;
 
