@@ -277,24 +277,16 @@
                 grid-template-columns: minmax(320px, 420px) 1fr;
                 gap: 1.5rem;
             }
-            .mg-preview-wrapper { 
-                position: sticky; 
-                top: 1.5rem;
-                grid-column: 2; /* Place preview in 2nd column on desktop, allowing controls (from source order) to fill 1st */
-            }
+            .mg-preview-wrapper { position: sticky; top: 1.5rem; }
         }
 
-        /* === MODIFIED: Responsive adjustments for mobile === */
+        /* === NEW: Responsive adjustments for mobile === */
         @media (max-width: 899px) {
             body {
-                padding: 0; /* Remove outer padding on mobile */
-            }
-            .window {
-                border: none; /* Remove the window border */
-                box-shadow: none; /* Remove the window shadow */
+                padding: 10px; /* Reduce outer padding on mobile */
             }
             #adhd-meme-generator {
-                padding: 0.5rem; /* Keep a small inner padding for content spacing */
+                padding: 0.5rem; /* Reduce inner padding on mobile */
             }
         }
 
@@ -367,13 +359,6 @@
         <p class="tagline">Upload → add character → adjust → add text → download/share</p>
         
         <div class="mg-editor-layout">
-            <div class="mg-preview-wrapper">
-                <div class="mg-preview no-image">
-                    <canvas id="mg-canvas" width="800" height="600"></canvas>
-                    <input type="file" id="mg-file" accept="image/*" style="display:none"/>
-                </div>
-            </div>
-
             <div class="mg-controls-wrapper">
                 <div class="mg-controls">
                     <fieldset>
@@ -484,7 +469,12 @@
                 </div>
             </div>
             
-
+            <div class="mg-preview-wrapper">
+                <div class="mg-preview no-image">
+                    <canvas id="mg-canvas" width="800" height="600"></canvas>
+                    <input type="file" id="mg-file" accept="image/*" style="display:none"/>
+                </div>
+            </div>
         </div>
 
         <div class="mg-actions">
