@@ -108,12 +108,6 @@
             pointer-events: none;
             text-shadow: 1px 1px var(--light);
         }
-
-        .mg-preview-actions {
-            display: flex;
-            justify-content: center;
-            margin-top: 0.75rem;
-        }
         
         /* ─── Controls & Fieldsets ─── */
         .mg-controls { display: grid; grid-template-columns: 1fr; gap: 1rem; }
@@ -372,9 +366,43 @@
         .mg-layer-thumb .delete-layer, .mg-text-thumb .delete-layer { position: absolute; top: -1px; right: -1px; color: #fff; font-size: .7rem; font-weight: bold; line-height: 1; padding: 1px 4px; cursor: pointer; }
     
         .hidden { display: none !important; }
-        #mg-zoom-controls {
+
+        /* --- NEW --- Pan/Zoom button on the canvas */
+        .mg-canvas-btn {
             position: absolute;
             bottom: 10px;
+            right: 10px;
+            z-index: 50;
+            width: 40px; 
+            height: 40px;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--light);
+            border: 2px solid var(--ink);
+            cursor: pointer;
+            box-shadow: 2px 2px 0px var(--shadow);
+            transition: .2s all;
+        }
+        .mg-canvas-btn img {
+            width: 24px;
+            height: 24px;
+        }
+        .mg-canvas-btn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px var(--shadow);
+        }
+        .mg-canvas-btn.active {
+            background-color: var(--mid);
+            box-shadow: none;
+            transform: translate(2px, 2px);
+        }
+
+        /* --- MODIFIED --- Desktop +/- controls to stack above new button */
+        #mg-zoom-controls {
+            position: absolute;
+            bottom: 60px; /* New position to avoid overlap */
             right: 10px;
             z-index: 50;
             display: flex;
@@ -424,6 +452,7 @@
                             <button class="fieldset-toggle-btn" aria-label="Minimize section" aria-expanded="true">—</button>
                         </legend>
                         <div class="fieldset-content">
+                            <!-- Hint will be inserted here by JS -->
                             <div id="mg-layers" class="mg-layers"></div>
                             <h3>Add Layer</h3>
                             <div class="mg-template-container">
@@ -516,13 +545,16 @@
                 <div class="mg-preview no-image">
                     <canvas id="mg-canvas" width="800" height="600"></canvas>
                     <input type="file" id="mg-file" accept="image/*" style="display:none"/>
+                    
+                    <!-- --- MODIFIED --- All on-canvas controls are now here -->
+                    <button class="mg-canvas-btn hidden" id="mg-panzoom-toggle">
+                        <img src="./assets/maker/zoom.png" alt="Pan/Zoom"> <!-- Placeholder for your icon -->
+                    </button>
+
                     <div id="mg-zoom-controls" class="hidden">
                         <button id="mg-zoom-in">+</button>
                         <button id="mg-zoom-out">−</button>
                     </div>
-                </div>
-                <div class="mg-preview-actions">
-                    <button class="mg-btn" id="mg-panzoom-toggle">Pan/Zoom</button>
                 </div>
             </div>
         </div>
@@ -1030,6 +1062,7 @@
                     resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
                     preview.classList.remove('no-image');
                     document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
+                    panZoomToggleBtn.classList.remove('hidden'); // --- MODIFIED --- Show the button
                     fitCanvasToContainer();
                     historyStack = [];
                     camera = { x: 0, y: 0, scale: 1 };
@@ -1383,7 +1416,9 @@
             img = null; layers = []; activeLayer = null; textLayers = []; activeTextLayer = null;
             brushMode = 'none'; eraserSize = 100; historyStack = []; fileInput.value = null;
             panZoomModeActive = false; camera = { x: 0, y: 0, scale: 1 };
-            panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden');
+            panZoomToggleBtn.classList.remove('active');
+            panZoomToggleBtn.classList.add('hidden'); // --- MODIFIED --- Hide the button on reset
+            zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
             refreshLayerUI(); refreshTextThumbs(); updateAllControls();
