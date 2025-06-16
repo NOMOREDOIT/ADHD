@@ -431,7 +431,6 @@
                                 <button class="mg-icon-btn" id="mg-rotate-icon" disabled title="Rotate 90°">↻</button>
                                 <button class="mg-icon-btn" id="mg-flip-icon" disabled title="Flip Horizontally">⇆</button>
                                 
-                                <!-- --- MODIFIED: Updated image paths --- -->
                                 <button class="mg-icon-btn" id="mg-erase-toggle" disabled title="Toggle Eraser Mode">
                                     <img src="./assets/maker/erase.png" alt="Erase">
                                 </button>
@@ -1010,6 +1009,7 @@
             selectLayer(layers.length - 1);
         }
         
+        // --- MODIFIED: The bug fix is here ---
         function applyErasure(startPoint, endPoint, mode) {
             if (activeLayer === null) return;
             const layer = layers[activeLayer];
@@ -1024,7 +1024,8 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                // THIS WAS THE BUG: `l` was used instead of `layer`
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
