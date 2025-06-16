@@ -242,6 +242,12 @@
         }
         .mg-icon-btn { width: 36px; height: 36px; padding: 0; display: inline-flex; justify-content: center; align-items: center; }
 
+        /* --- NEW: Style for PNG icons inside buttons --- */
+        .mg-icon-btn img {
+            width: 24px;
+            height: 24px;
+        }
+
         .mg-icon-btn.active {
             background-color: var(--mid);
             box-shadow: none;
@@ -426,29 +432,17 @@
                                 <button class="mg-icon-btn" id="mg-rotate-icon" disabled title="Rotate 90°">↻</button>
                                 <button class="mg-icon-btn" id="mg-flip-icon" disabled title="Flip Horizontally">⇆</button>
                                 
+                                <!-- --- MODIFIED: Replaced SVGs with IMGs --- -->
                                 <button class="mg-icon-btn" id="mg-erase-toggle" disabled title="Toggle Eraser Mode">
-                                    <svg width="24" height="24" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: crispEdges;">
-                                        <path d="M7 1L6 2L2 6L1 7V8L2 9L3 10H4L8 14L9 15H10L14 11L15 10V9L14 8L13 7H12L8 3L7 2V1Z" fill="#2b2b2b"/>
-                                        <path d="M7 2L3 6L2 7H1V8L2 9H3L7 13L8 14H9L13 10L14 9V8L13 7H12L8 3L7 2Z" fill="#FFB8C2"/>
-                                        <path d="M8 3L4 7L3 8L7 12L8 13L12 9L13 8L9 4L8 3Z" fill="#FFDDDD"/>
-                                        <path d="M4 8L2 10L3 11L5 9L4 8Z" fill="#AAAAAA"/>
-                                        <path d="M5 8L3 10L4 11L6 9L5 8Z" fill="#C2C2C2"/>
-                                        <path d="M6 8L4 10L5 11L7 9L6 8Z" fill="#AAAAAA"/>
-                                    </svg>
+                                    <img src="erase.png" alt="Erase">
                                 </button>
                                 
                                 <button class="mg-icon-btn" id="mg-unerase-toggle" disabled title="Toggle Unerase Mode">
-                                   <svg width="24" height="24" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: crispEdges;">
-                                        <path d="M4 11H5V12H4Z" fill="#2b2b2b"/><path d="M5 12H6V13H5Z" fill="#2b2b2b"/><path d="M6 13H7V14H6Z" fill="#2b2b2b"/><path d="M7 14H8V15H7Z" fill="#2b2b2b"/><path d="M3 10H4V11H3Z" fill="#CF8B50"/><path d="M4 9H5V10H4Z" fill="#CF8B50"/><path d="M5 8H6V9H5Z" fill="#CF8B50"/><path d="M3 11H4V12H3Z" fill="#A56F40"/><path d="M4 10H5V11H4Z" fill="#A56F40"/><path d="M5 9H6V10H5Z" fill="#A56F40"/><path d="M6 7H7V8H6Z" fill="#C2C2C2"/><path d="M7 7H8V8H7Z" fill="#C2C2C2"/><path d="M8 7H9V8H8Z" fill="#C2C2C2"/><path d="M6 6H9V7H6Z" fill="#E8E8E8"/><path d="M6 5H9V6H6Z" fill="#C2C2C2"/><path d="M8 1H9V2H8Z" fill="#2b2b2b"/><path d="M7 2H8V3H7Z" fill="#2b2b2b"/><path d="M6 3H7V4H6Z" fill="#2b2b2b"/><path d="M9 2H10V3H9Z" fill="#2b2b2b"/><path d="M10 3H11V4H10Z" fill="#2b2b2b"/><path d="M5 4L6 4L6 3L7 3L7 2L8 2L8 1H9 9V2L10 2L10 3L11 3L11 4H12V5L5 5Z" fill="#2b2b2b"/><path d="M6 4V5H11V4Z" fill="#22a7f0"/><path d="M7 3H10V4H7Z" fill="#22a7f0"/><path d="M8 2H9V3H8Z" fill="#22a7f0"/>
-                                    </svg>
+                                   <img src="unerase.png" alt="Un-erase">
                                 </button>
 
                                 <button class="mg-icon-btn" id="mg-undo" disabled title="Undo (Cmd/Ctrl+Z)">
-                                    <svg width="24" height="24" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: crispEdges;">
-                                        <path d="M4 7V6H5V5H6V4H10V5H11V6H12V9H11V10H10V11H6V10H5V9H4V7Z" fill="#2b2b2b"/>
-                                        <path d="M5 7V6H6V5H10V6H11V9H10V10H6V9H5V7Z" fill="#f2efe8"/>
-                                        <path d="M3 8H4V9H3Z" fill="#2b2b2b"/><path d="M2 9H3V10H2Z" fill="#2b2b2b"/><path d="M1 10H2V11H1Z" fill="#2b2b2b"/><path d="M5 8V7H4V6L3 6V7L2 7V8L1 8V9L1 10H2V11H3V12L4 12V11L5 11V10V9L5 8Z" fill="#2b2b2b"/><path d="M2 8H4V6H3V7H2V8Z" fill="#f2efe8"/><path d="M1 9H2V10H1V9Z" fill="#f2efe8"/><path d="M2 11H3V10H4V9H5V8H4V9H3V10H2V11Z" fill="#f2efe8"/>
-                                    </svg>
+                                    <img src="undo.png" alt="Undo">
                                 </button>
                             </div>
 
@@ -923,8 +917,7 @@
                 ctx.restore();
             }
         }
-
-        // --- NEW: Image resizing and standardization function ---
+        
         function resizeImage(file) {
             return new Promise((resolve, reject) => {
                 const MAX_DIMENSION = 1920;
@@ -960,7 +953,6 @@
             });
         }
         
-        // --- MODIFIED: Integrated the resizing logic ---
         async function handleFile(file) {
             if (!file) return;
 
