@@ -728,22 +728,18 @@
             const wrap = document.getElementById('mg-layers');
             const fieldsetContent = wrap.parentElement; 
 
-            // First, remove any existing hint to prevent duplicates
             const existingHint = document.getElementById('mg-layers-hint');
             if (existingHint) {
                 existingHint.remove();
             }
 
-            // Add the hint if there are more than one layer
             if (layers.length > 1) {
                 const hintEl = document.createElement('div');
                 hintEl.id = 'mg-layers-hint';
                 hintEl.textContent = 'Click to choose layer';
-                // Insert the hint element before the layer thumbnails container
                 fieldsetContent.insertBefore(hintEl, wrap);
             }
 
-            // Now, clear and populate the layer thumbnails container
             wrap.innerHTML = '';
             layers.forEach((layer, i) => {
                 const div = document.createElement('div');
@@ -927,6 +923,44 @@
                 ctx.restore();
             }
         }
+
+        // --- NEW: Image resizing and standardization function ---
+        function resizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const MAX_DIMENSION = 1920;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        let { naturalWidth: width, naturalHeight: height } = tempImg;
+
+                        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                            if (width > height) {
+                                height = (height / width) * MAX_DIMENSION;
+                                width = MAX_DIMENSION;
+                            } else {
+                                width = (width / height) * MAX_DIMENSION;
+                                height = MAX_DIMENSION;
+                            }
+                        }
+                        
+                        const offscreenCanvas = document.createElement('canvas');
+                        offscreenCanvas.width = width;
+                        offscreenCanvas.height = height;
+                        const offscreenCtx = offscreenCanvas.getContext('2d');
+                        
+                        offscreenCtx.drawImage(tempImg, 0, 0, width, height);
+                        resolve(offscreenCanvas.toDataURL('image/jpeg', 0.9));
+                    };
+                    tempImg.onerror = () => reject(new Error("Could not load temp image."));
+                    tempImg.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error("Could not read file."));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // --- MODIFIED: Integrated the resizing logic ---
         async function handleFile(file) {
             if (!file) return;
 
@@ -936,43 +970,42 @@
                 toast('Converting HEIC image...');
                 try {
                     const conversionResult = await heic2any({
-                        blob: file,
-                        toType: "image/png",
-                        quality: 0.9,
+                        blob: file, toType: "image/jpeg", quality: 0.9,
                     });
-                    
                     fileToProcess = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-
                 } catch (error) {
                     console.error(error);
                     toast('Could not convert HEIC file.');
                     return;
                 }
             }
-
-            if (fileToProcess.size > 10 * 1024 * 1024) {
-                return toast('File is too large (> 10 MB)');
-            }
-
-            const image = new Image();
-            image.onload = () => {
-                img = image;
-                resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
-                preview.classList.remove('no-image');
-                document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
-                fitCanvasToContainer();
-                historyStack = [];
-                updateAllControls();
-                draw();
-                URL.revokeObjectURL(image.src);
-            };
-            image.onerror = () => {
-                toast('Could not load image file.');
-            };
             
-            image.src = URL.createObjectURL(fileToProcess);
-            fileInput.value = null;
+            try {
+                toast('Processing image...');
+                const resizedImageSrc = await resizeImage(fileToProcess);
+
+                const image = new Image();
+                image.onload = () => {
+                    img = image;
+                    resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
+                    preview.classList.remove('no-image');
+                    document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
+                    fitCanvasToContainer();
+                    historyStack = [];
+                    updateAllControls();
+                    draw();
+                };
+                image.onerror = () => toast('Could not load processed image.');
+                image.src = resizedImageSrc;
+
+            } catch (error) {
+                console.error(error);
+                toast('Failed to process image.');
+            } finally {
+                fileInput.value = null; // Reset input regardless of outcome
+            }
         }
+
         function addImageLayer(image, src) {
             if (layers.length >= 10) return toast('Maximum 10 layers allowed');
             const MAX_DIM_PERCENT = 0.40;
@@ -1267,7 +1300,6 @@
                 };
                 reader.readAsDataURL(file);
                 
-                // --- MODIFIED: Reset value to allow selecting the same file again ---
                 e.target.value = null;
             });
 
