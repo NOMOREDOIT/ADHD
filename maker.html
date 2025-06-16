@@ -277,7 +277,11 @@
                 grid-template-columns: minmax(320px, 420px) 1fr;
                 gap: 1.5rem;
             }
-            .mg-preview-wrapper { position: sticky; top: 1.5rem; }
+            .mg-preview-wrapper { 
+                position: sticky; 
+                top: 1.5rem;
+                grid-column: 2; /* Place preview in 2nd column on desktop, allowing controls (from source order) to fill 1st */
+            }
         }
 
         /* === MODIFIED: Responsive adjustments for mobile === */
@@ -363,6 +367,13 @@
         <p class="tagline">Upload → add character → adjust → add text → download/share</p>
         
         <div class="mg-editor-layout">
+            <div class="mg-preview-wrapper">
+                <div class="mg-preview no-image">
+                    <canvas id="mg-canvas" width="800" height="600"></canvas>
+                    <input type="file" id="mg-file" accept="image/*" style="display:none"/>
+                </div>
+            </div>
+
             <div class="mg-controls-wrapper">
                 <div class="mg-controls">
                     <fieldset>
@@ -473,12 +484,7 @@
                 </div>
             </div>
             
-            <div class="mg-preview-wrapper">
-                <div class="mg-preview no-image">
-                    <canvas id="mg-canvas" width="800" height="600"></canvas>
-                    <input type="file" id="mg-file" accept="image/*" style="display:none"/>
-                </div>
-            </div>
+
         </div>
 
         <div class="mg-actions">
