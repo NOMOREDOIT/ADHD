@@ -641,149 +641,6 @@
         let camera = { x: 0, y: 0, scale: 1 };
         let layerStateBeforePan = { activeLayer: null, activeTextLayer: null };
 
-        // The vast majority of the code is the same, so I'll omit it for brevity, 
-        // but it is all included in the final file above. The key changes are in:
-        // - applyErasure() [the typo fix]
-        // - setupListeners() for the panZoomToggleBtn and resetViewBtn
-        // The following is just the relevant changed JS functions. The HTML above is complete.
-        
-        function applyErasure(startPoint, endPoint, mode) {
-            if (activeLayer === null) return;
-            const layer = layers[activeLayer];
-            if (!layer.eraseMask) {
-                layer.eraseMask = document.createElement('canvas');
-                layer.eraseMask.width = layer.img.naturalWidth;
-                layer.eraseMask.height = layer.img.naturalHeight;
-            }
-            const maskCtx = layer.eraseMask.getContext('2d');
-            const transformPoint = (p) => {
-                const scale = layer.size / 100;
-                const cropPercent = (layer.cropY || 0) / 100;
-                // --- THIS WAS THE BUG. It referenced 'l.img', which doesn't exist here. It should be 'layer.img' ---
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
-                const dx = p.x - (W() * (layer.x / 100));
-                const dy = p.y - (H() * (layer.y / 100) - yOffset);
-                const angle = -layer.rot * Math.PI / 180;
-                const rdx = dx * Math.cos(angle) - dy * Math.sin(angle);
-                const rdy = dx * Math.sin(angle) + dy * Math.cos(angle);
-                const fdx = rdx * (layer.flip ? -1 : 1);
-                const sdx = fdx / scale;
-                const sdy = rdy / scale;
-                return { x: sdx + layer.img.naturalWidth / 2, y: sdy + layer.img.naturalHeight / 2 };
-            };
-            const p1 = transformPoint(startPoint);
-            const p2 = transformPoint(endPoint);
-            const brushRadius = (eraserSize / (layer.size / 100)) / 2;
-            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            const steps = Math.max(1, Math.ceil(dist / (brushRadius * 0.5)));
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                const x = p1.x + t * (p2.x - p1.x);
-                const y = p1.y + t * (p2.y - p1.y);
-                if (mode === 'erase') {
-                    maskCtx.globalCompositeOperation = 'source-over';
-                    const gradient = maskCtx.createRadialGradient(x, y, 0, x, y, brushRadius);
-                    gradient.addColorStop(0, 'rgba(0,0,0,1)');
-                    gradient.addColorStop(0.8, 'rgba(0,0,0,1)');
-                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-                    maskCtx.fillStyle = gradient;
-                    maskCtx.fillRect(x - brushRadius, y - brushRadius, brushRadius * 2, brushRadius * 2);
-                } else {
-                    maskCtx.globalCompositeOperation = 'destination-out';
-                    maskCtx.fillStyle = 'black';
-                    maskCtx.beginPath();
-                    maskCtx.arc(x, y, brushRadius, 0, Math.PI * 2);
-                    maskCtx.fill();
-                }
-            }
-            draw();
-        }
-
-        function setupListeners() {
-            // ... all other listeners are the same ...
-            
-            panZoomToggleBtn.addEventListener('click', () => {
-                panZoomModeActive = !panZoomModeActive; 
-                panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
-                controlsWrapper.classList.toggle('disabled-for-pan', panZoomModeActive);
-
-                if (panZoomModeActive) { 
-                    // Save current selection before deselecting
-                    layerStateBeforePan = { activeLayer, activeTextLayer };
-                    deselectAll(); 
-                    toast("Pan/Zoom Mode On"); 
-                } else { 
-                    toast("Pan/Zoom Mode Off");
-                    // Restore previous selection
-                    if (layerStateBeforePan.activeLayer !== null) {
-                        selectLayer(layerStateBeforePan.activeLayer);
-                    } else if (layerStateBeforePan.activeTextLayer !== null) {
-                        selectTextLayer(layerStateBeforePan.activeTextLayer);
-                    }
-                }
-                const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-                zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
-                updateAllControls(); updateCursor(); draw();
-            });
-
-            resetViewBtn.addEventListener('click', () => {
-                camera = {x: 0, y: 0, scale: 1};
-                draw();
-                toast("View Reset");
-            });
-
-            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
-
-            // ... the rest of the listeners are the same ...
-        }
-
-        // To be extra clear, I will paste the entire script tag content again below.
-    })();
-</script>
-
-<!-- PASTE THE FULL SCRIPT HERE TO BE SAFE -->
-<script>
-    (function () {
-        const fileInput = document.getElementById('mg-file');
-        const canvas = document.getElementById('mg-canvas');
-        const preview = document.querySelector('.mg-preview');
-        const previewWrapper = document.querySelector('.mg-preview-wrapper');
-        const controlsWrapper = document.querySelector('.mg-controls-wrapper');
-        const ctx = canvas.getContext('2d');
-        const txtArea = document.getElementById('mg-text');
-        const txtSizeEl = document.getElementById('mg-text-size');
-        const txtPosXEl = document.getElementById('mg-text-pos-x');
-        const txtPosYEl = document.getElementById('mg-text-pos-y');
-        const textColorToggle = document.getElementById('mg-text-color-toggle');
-        const templateOverlay = document.getElementById('mg-template-overlay');
-        const moreTemplatesBtn = document.getElementById('mg-template-more');
-        const closeOverlayBtn = document.getElementById('mg-template-overlay-close');
-        const eraseToggleBtn = document.getElementById('mg-erase-toggle');
-        const uneraseToggleBtn = document.getElementById('mg-unerase-toggle');
-        const undoBtn = document.getElementById('mg-undo');
-        const eraseSizeSlider = document.getElementById('mg-erase-size');
-        const eraseSizeVal = document.getElementById('mg-erase-size-val');
-        const panZoomToggleBtn = document.getElementById('mg-panzoom-toggle');
-        const zoomControls = document.getElementById('mg-zoom-controls');
-        const zoomInBtn = document.getElementById('mg-zoom-in');
-        const zoomOutBtn = document.getElementById('mg-zoom-out');
-        const resetViewBtn = document.getElementById('mg-reset-view');
-
-        let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
-        let interaction = { active: false };
-        let brushMode = 'none';
-        let eraserSize = 100;
-        const tempLayerCanvas = document.createElement('canvas');
-        const tempLayerCtx = tempLayerCanvas.getContext('2d');
-        let historyStack = [];
-        const HISTORY_LIMIT = 50;
-        const HANDLE_SIZE = 12;
-        const TOUCH_HANDLE_RADIUS = 40;
-        const DPR = window.devicePixelRatio || 1;
-        let panZoomModeActive = false;
-        let camera = { x: 0, y: 0, scale: 1 };
-        let layerStateBeforePan = { activeLayer: null, activeTextLayer: null };
-
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
             ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(DPR, DPR);
@@ -1302,7 +1159,7 @@
             const isTouchEvent = !!e.touches;
             if (panZoomModeActive) {
                 e.preventDefault();
-                if (isTouchEvent && e.touches.length === 2) {
+                if (isTouchEvent && e.touches.length >= 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
                     interaction = { active: true, type: 'zoomCamera', initialDist: Math.hypot(dx, dy), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(camera)) };
@@ -1317,7 +1174,7 @@
             
             panZoomToggleBtn.classList.add('hidden');
 
-            if (isTouchEvent && e.touches.length === 2 && activeLayer !== null) {
+            if (isTouchEvent && e.touches.length >= 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
@@ -1376,7 +1233,7 @@
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
                     camera.x = interaction.initialState.x + (clientX - interaction.startX);
                     camera.y = interaction.initialState.y + (clientY - interaction.startY);
-                } else if (interaction.type === 'zoomCamera' && isTouchEvent && e.touches.length === 2) {
+                } else if (interaction.type === 'zoomCamera' && isTouchEvent && e.touches.length >= 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
                     const currentMidpoint = getMidpoint(t1,t2);
@@ -1391,7 +1248,7 @@
                 return;
             }
             if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return; }
-            if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
+            if (interaction.type === 'pinchLayer' && e.touches && e.touches.length >= 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const rect = canvas.getBoundingClientRect();
@@ -1511,8 +1368,7 @@
                         selectTextLayer(layerStateBeforePan.activeTextLayer);
                     }
                 }
-                const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-                zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
+                zoomControls.classList.toggle('hidden', !panZoomModeActive);
                 updateAllControls(); updateCursor(); draw();
             });
             resetViewBtn.addEventListener('click', () => {
@@ -1536,9 +1392,8 @@
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                const tempCamera = { ...camera };
-                const wasInPanZoom = panZoomModeActive;
-                panZoomModeActive = false; // Temporarily exit pan mode for clean capture
+                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
+                panZoomModeActive = false;
                 camera = { x: 0, y: 0, scale: 1 };
                 panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
                 deselectAll(); 
@@ -1546,10 +1401,20 @@
                     const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
                     camera = tempCamera; 
                     panZoomModeActive = wasInPanZoom;
-                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom || !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0)));
+                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom);
                     controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
                     updateAllControls(); 
-                    draw();
+                    if(wasInPanZoom) {
+                        if (layerStateBeforePan.activeLayer !== null) {
+                            selectLayer(layerStateBeforePan.activeLayer);
+                        } else if (layerStateBeforePan.activeTextLayer !== null) {
+                            selectTextLayer(layerStateBeforePan.activeTextLayer);
+                        } else {
+                            draw();
+                        }
+                    } else {
+                        draw();
+                    }
                 }, 100);
             });
             document.getElementById('mg-share').addEventListener('click', () => {
