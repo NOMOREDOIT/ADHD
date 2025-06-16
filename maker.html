@@ -483,7 +483,6 @@
                     <canvas id="mg-canvas" width="800" height="600"></canvas>
                     <input type="file" id="mg-file" accept="image/*" style="display:none"/>
                 </div>
-                <!-- --- NEW: View control button --- -->
                 <div class="mg-actions" style="margin-top:0.5rem;">
                     <button class="mg-btn" id="mg-view-toggle">Change View</button>
                 </div>
@@ -563,7 +562,6 @@
         const eraseSizeSlider = document.getElementById('mg-erase-size');
         const eraseSizeVal = document.getElementById('mg-erase-size-val');
         
-        // --- NEW: View Mode elements and state ---
         const viewToggleBtn = document.getElementById('mg-view-toggle');
         let isViewMode = false;
         let viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
@@ -815,11 +813,12 @@
             return { x: cx - maxWidth / 2, y: cy - totalHeight / 2, width: maxWidth, height: totalHeight, cx, cy };
         }
         
-        // --- MODIFIED: The main draw function now supports view transformations ---
         function draw() {
-            ctx.clearRect(0, 0, W(), H());
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before clearing
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Use raw canvas dimensions
             
             ctx.save();
+            ctx.scale(DPR, DPR); // Apply DPR scaling first
             ctx.translate(viewTransform.offsetX, viewTransform.offsetY);
             ctx.scale(viewTransform.scale, viewTransform.scale);
 
@@ -893,7 +892,6 @@
                 });
             });
 
-            // Don't draw selection highlights if in View Mode
             if (!isViewMode) {
                 const highlightColor = '#00FF00';
                 if (activeLayer !== null && layers[activeLayer]) {
@@ -936,7 +934,7 @@
                     }
                 }
             }
-            ctx.restore(); // Restore from the view transform
+            ctx.restore(); 
 
             if (brushMode !== 'none' && activeLayer !== null && interaction.lastPoint) {
                 const point = interaction.lastPoint;
@@ -946,7 +944,7 @@
                 ctx.fillStyle = isUnerase ? 'rgba(0, 123, 255, 0.3)' : 'rgba(255,255,255,0.5)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(point.x, point.y, eraserSize / 2, 0, Math.PI * 2);
+                ctx.arc(point.x, point.y, (eraserSize / viewTransform.scale) / 2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
@@ -1110,12 +1108,24 @@
         }
         function getCanvasPoint(e) {
             const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - rect.left) / rect.width * W(), y: (clientY - rect.top) / rect.height * H() };
+            let clientX, clientY;
+
+            if (e.touches) {
+                if (e.touches.length === 2) {
+                    const midpoint = getMidpoint(e.touches[0], e.touches[1]);
+                    clientX = midpoint.x;
+                    clientY = midpoint.y;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
         
-        // --- NEW: Function to convert screen points to world (zoomed/panned) points ---
         function getTransformedPoint(point) {
             return {
                 x: (point.x - viewTransform.offsetX) / viewTransform.scale,
@@ -1139,7 +1149,6 @@
             return null;
         }
 
-        // --- MODIFIED: Split interaction logic between View Mode and Edit Mode ---
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
 
@@ -1147,18 +1156,22 @@
             
             if (isViewMode) {
                 e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
                 if (isTouchEvent && e.touches.length === 2) { // Pinch start
                     const t1 = e.touches[0], t2 = e.touches[1];
+                    const midpoint = getMidpoint(t1, t2);
+                    const canvasMidpoint = { x: midpoint.x - rect.left, y: midpoint.y - rect.top };
+                    
                     interaction = {
                         active: true, type: 'pinchView',
                         initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY),
-                        initialState: { ...viewTransform }
+                        worldMidpoint: getTransformedPoint(canvasMidpoint)
                     };
                 } else { // Pan start
                     canvas.style.cursor = 'grabbing';
                     interaction = {
                         active: true, type: 'panView',
-                        lastPoint: getCanvasPoint(e)
+                        lastPoint: {x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY}
                     };
                 }
                 return;
@@ -1206,7 +1219,7 @@
                     cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
                 };
                 const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
-                const handle = getHandleAtPoint(worldPoint, bounds, l.rot, resizeRadius);
+                const handle = getHandleAtPoint(worldPoint, bounds, l.rot, resizeRadius / viewTransform.scale);
                 
                 if (handle) {
                     interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: worldPoint.x, startY: worldPoint.y, initialState: JSON.parse(JSON.stringify(l)) };
@@ -1244,27 +1257,24 @@
             e.preventDefault();
             
             if(isViewMode){
+                const rect = canvas.getBoundingClientRect();
                 if (interaction.type === 'pinchView' && e.touches && e.touches.length === 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-                    let scaleDelta = currentDist / interaction.initialDist;
-                    let newScale = interaction.initialState.scale * scaleDelta;
+                    const scaleDelta = currentDist / interaction.initialDist;
                     
+                    let newScale = viewTransform.scale * scaleDelta;
                     newScale = Math.min(Math.max(newScale, 0.25), 10); // Clamp scale
                     
-                    const rect = canvas.getBoundingClientRect();
                     const midpoint = getMidpoint(t1, t2);
-                    const canvasMidpoint = {
-                        x: (midpoint.x - rect.left) / rect.width * W(),
-                        y: (midpoint.y - rect.top) / rect.height * H()
-                    };
-
-                    viewTransform.offsetX = canvasMidpoint.x - (canvasMidpoint.x - interaction.initialState.offsetX) * (newScale / interaction.initialState.scale);
-                    viewTransform.offsetY = canvasMidpoint.y - (canvasMidpoint.y - interaction.initialState.offsetY) * (newScale / interaction.initialState.scale);
+                    const canvasMidpoint = { x: midpoint.x - rect.left, y: midpoint.y - rect.top };
+                    
+                    viewTransform.offsetX = canvasMidpoint.x - interaction.worldMidpoint.x * newScale;
+                    viewTransform.offsetY = canvasMidpoint.y - interaction.worldMidpoint.y * newScale;
                     viewTransform.scale = newScale;
 
                 } else if (interaction.type === 'panView') {
-                    const currentPoint = getCanvasPoint(e);
+                    const currentPoint = {x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY};
                     viewTransform.offsetX += currentPoint.x - interaction.lastPoint.x;
                     viewTransform.offsetY += currentPoint.y - interaction.lastPoint.y;
                     interaction.lastPoint = currentPoint;
@@ -1273,7 +1283,6 @@
                 return;
             }
             
-
             // --- Regular Edit Mode Logic ---
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
@@ -1281,21 +1290,13 @@
                 const rect = canvas.getBoundingClientRect();
 
                 const currentMidpoint = getMidpoint(t1, t2);
-                const worldMidpoint = getTransformedPoint({
-                    x: (currentMidpoint.x - rect.left) / rect.width * W(),
-                    y: (currentMidpoint.y - rect.top) / rect.height * H()
-                });
-
-                const iStateWorldMidpoint = getTransformedPoint({
-                    x: (interaction.initialMidpoint.x - rect.left) / rect.width * W(),
-                    y: (interaction.initialMidpoint.y - rect.top) / rect.height * H()
-                });
+                const worldMidpoint = getTransformedPoint({ x: currentMidpoint.x - rect.left, y: currentMidpoint.y - rect.top });
+                const iStateWorldMidpoint = getTransformedPoint({ x: interaction.initialMidpoint.x - rect.left, y: interaction.initialMidpoint.y - rect.top });
                 
                 l.x = interaction.initialState.x + (worldMidpoint.x - iStateWorldMidpoint.x) / W() * 100;
                 l.y = interaction.initialState.y + (worldMidpoint.y - iStateWorldMidpoint.y) / H() * 100;
 
                 const currentDx = t2.clientX - t1.clientX, currentDy = t2.clientY - t1.clientY;
-                
                 const currentAngle = Math.atan2(currentDy, currentDx);
                 const deltaAngle = currentAngle - interaction.initialAngle;
                 l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI);
@@ -1350,8 +1351,14 @@
             }
              if (isViewMode && interaction.active) {
                 canvas.style.cursor = 'grab';
+                interaction.active = false;
+                 // On pinch end, re-evaluate the interaction state for the next move
+                if (interaction.type === 'pinchView' && event.touches && event.touches.length === 1) {
+                    handleInteractionStart(event);
+                }
+            } else {
+               interaction.active = false;
             }
-            interaction.active = false;
         }
         
         function openTemplateOverlay() {
@@ -1404,18 +1411,16 @@
                 e.target.value = null;
             });
 
-            // --- NEW: View Toggle Button Listener ---
             viewToggleBtn.addEventListener('click', () => {
                 isViewMode = !isViewMode;
                 viewToggleBtn.classList.toggle('active', isViewMode);
 
                 if (!isViewMode) {
-                    // Reset view transform when turning mode off
                     viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
                     toast('Edit Mode');
                 } else {
-                    deselectAll(); // Deselect layers when entering view mode
-                    toast('View Mode');
+                    deselectAll();
+                    toast('View Mode (Pan/Zoom)');
                 }
                 updateCursor();
                 draw();
@@ -1509,7 +1514,9 @@
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                isViewMode = false; // Ensure we're not in view mode for final export
+                isViewMode = false; 
+                viewToggleBtn.classList.remove('active');
+                viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
                 deselectAll();
                 setTimeout(() => {
                     const link = document.createElement('a');
