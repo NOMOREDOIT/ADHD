@@ -93,7 +93,6 @@
             border: 2px solid var(--ink);
             background-color: var(--light);
         }
-        /* --- NEW --- Grabbing cursor style */
         .mg-preview canvas.grabbing {
             cursor: grabbing;
         }
@@ -108,6 +107,12 @@
             color: var(--shadow);
             pointer-events: none;
             text-shadow: 1px 1px var(--light);
+        }
+
+        .mg-preview-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 0.75rem;
         }
         
         /* ─── Controls & Fieldsets ─── */
@@ -516,11 +521,13 @@
                         <button id="mg-zoom-out">−</button>
                     </div>
                 </div>
+                <div class="mg-preview-actions">
+                    <button class="mg-btn" id="mg-panzoom-toggle">Pan/Zoom</button>
+                </div>
             </div>
         </div>
 
         <div class="mg-actions">
-            <button class="mg-btn" id="mg-panzoom-toggle">Pan/Zoom</button>
             <button class="mg-btn" id="mg-reset">Reset</button>
             <button class="mg-btn" id="mg-download">Download</button>
             <button class="mg-btn" id="mg-share">Share on X</button>
@@ -730,28 +737,35 @@
             activeLayer = null; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
-        function createSnapshot() {
+
+        function createSnapshot(isDestructive = false) {
             const layerSnap = layers.map(l => {
                 const newLayer = { ...l, img: l.img };
                 if (l.eraseMask) {
-                    const maskCopy = document.createElement('canvas');
-                    maskCopy.width = l.eraseMask.width;
-                    maskCopy.height = l.eraseMask.height;
-                    maskCopy.getContext('2d').drawImage(l.eraseMask, 0, 0);
-                    newLayer.eraseMask = maskCopy;
+                    if (isDestructive) {
+                        const maskCopy = document.createElement('canvas');
+                        maskCopy.width = l.eraseMask.width;
+                        maskCopy.height = l.eraseMask.height;
+                        maskCopy.getContext('2d').drawImage(l.eraseMask, 0, 0);
+                        newLayer.eraseMask = maskCopy;
+                    } else {
+                        newLayer.eraseMask = l.eraseMask;
+                    }
                 }
                 return newLayer;
             });
             const textLayerSnap = JSON.parse(JSON.stringify(textLayers));
             return { layers: layerSnap, textLayers: textLayerSnap };
         }
-        function pushStateToHistory() {
-            if (historyStack.length > HISTORY_LIMIT) {
+        
+        function pushStateToHistory(isDestructive = false) {
+            if (historyStack.length >= HISTORY_LIMIT) {
                 historyStack.shift();
             }
-            historyStack.push(createSnapshot());
+            historyStack.push(createSnapshot(isDestructive));
             updateAllControls();
         }
+
         function performUndo() {
             if (historyStack.length === 0) return;
             const prevState = historyStack.pop();
@@ -835,7 +849,6 @@
             const cx = W() * (t.x / 100), cy = H() * (t.y / 100);
             return { x: cx - maxWidth / 2, y: cy - totalHeight / 2, width: maxWidth, height: totalHeight, cx, cy };
         }
-
         function clampCamera() {
             camera.scale = Math.max(1, camera.scale);
             const maxPanX = 0;
@@ -845,16 +858,12 @@
             camera.x = Math.max(minPanX, Math.min(maxPanX, camera.x));
             camera.y = Math.max(minPanY, Math.min(maxPanY, camera.y));
         }
-
         function draw() {
             ctx.clearRect(0, 0, W(), H());
-
             ctx.save();
             ctx.translate(camera.x, camera.y);
             ctx.scale(camera.scale, camera.scale);
-
             if (img) ctx.drawImage(img, 0, 0, W(), H());
-            
             layers.forEach(l => {
                 const scale = l.size / 100;
                 const cropPercent = (l.cropY || 0) / 100;
@@ -898,7 +907,6 @@
                 ctx.drawImage(imageToDraw, 0, 0, sWidth, sHeight, -dWidth / 2, -dHeight / 2, dWidth, dHeight);
                 ctx.restore();
             });
-
             textLayers.forEach(t => {
                 if (!t.text.trim()) return;
                 const fontPx = t.size * (W() / 800);
@@ -915,7 +923,6 @@
                     ctx.fillText(line, W() * (t.x / 100), y);
                 });
             });
-
             if (!panZoomModeActive) {
                 const highlightColor = '#00FF00';
                 if (activeLayer !== null && layers[activeLayer]) {
@@ -954,9 +961,7 @@
                     }
                 }
             }
-            
             ctx.restore();
-
             if (brushMode !== 'none' && activeLayer !== null && interaction.lastPoint) {
                 const point = interaction.lastPoint;
                 const isUnerase = brushMode === 'unerase';
@@ -973,7 +978,6 @@
                 ctx.restore();
             }
         }
-        
         function resizeImage(file) {
             return new Promise((resolve, reject) => {
                 const MAX_DIMENSION = 1920;
@@ -1005,7 +1009,6 @@
                 reader.readAsDataURL(file);
             });
         }
-        
         async function handleFile(file) {
             if (!file) return;
             let fileToProcess = file;
@@ -1041,7 +1044,6 @@
                 fileInput.value = null;
             }
         }
-
         function addImageLayer(image, src) {
             if (layers.length >= 10) return toast('Maximum 10 layers allowed');
             const MAX_DIM_PERCENT = 0.40;
@@ -1054,7 +1056,6 @@
             layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0, eraseMask: null, opacity: 100, light: 0 });
             selectLayer(layers.length - 1);
         }
-        
         function applyErasure(startPoint, endPoint, mode) {
             if (activeLayer === null) return;
             const layer = layers[activeLayer];
@@ -1105,9 +1106,7 @@
             }
             draw();
         }
-        function getMidpoint(t1, t2) {
-            return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
-        }
+        function getMidpoint(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; }
         function getCanvasPoint(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1120,10 +1119,7 @@
         }
         function getHandleAtPoint(point, bounds, rotation = 0, radius = HANDLE_SIZE) {
             const cx = bounds.cx; const cy = bounds.cy;
-            const handles = {
-                tl: {x: -bounds.width/2, y: -bounds.height/2}, tr: {x: bounds.width/2, y: -bounds.height/2},
-                bl: {x: -bounds.width/2, y: bounds.height/2}, br: {x: bounds.width/2, y: bounds.height/2}
-            };
+            const handles = { tl: {x: -bounds.width/2, y: -bounds.height/2}, tr: {x: bounds.width/2, y: -bounds.height/2}, bl: {x: -bounds.width/2, y: bounds.height/2}, br: {x: bounds.width/2, y: bounds.height/2} };
             for (const name in handles) {
                 const handle = handles[name];
                 const angle = rotation * Math.PI / 180;
@@ -1133,85 +1129,56 @@
             }
             return null;
         }
-
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
             const isTouchEvent = !!e.touches;
-
             if (panZoomModeActive) {
                 e.preventDefault();
                 if (isTouchEvent && e.touches.length === 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
-                    interaction = {
-                        active: true, type: 'zoomCamera',
-                        initialDist: Math.hypot(dx, dy),
-                        initialMidpoint: getMidpoint(t1, t2),
-                        initialState: JSON.parse(JSON.stringify(camera))
-                    };
+                    interaction = { active: true, type: 'zoomCamera', initialDist: Math.hypot(dx, dy), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(camera)) };
                 } else {
                     const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
-                    interaction = {
-                        active: true, type: 'panCamera',
-                        startX: clientX, startY: clientY,
-                        initialState: JSON.parse(JSON.stringify(camera))
-                    };
+                    interaction = { active: true, type: 'panCamera', startX: clientX, startY: clientY, initialState: JSON.parse(JSON.stringify(camera)) };
                     updateCursor();
                 }
                 return;
             }
-            
             if (isTouchEvent && e.touches.length === 2 && activeLayer !== null) {
                 e.preventDefault();
-                pushStateToHistory();
+                pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
-                interaction = {
-                    active: true, type: 'pinchLayer', index: activeLayer,
-                    initialDist: Math.hypot(dx, dy),
-                    initialAngle: Math.atan2(dy, dx),
-                    initialMidpoint: getMidpoint(t1, t2),
-                    initialState: JSON.parse(JSON.stringify(layers[activeLayer]))
-                };
+                interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
                 return;
             }
-            
             e.preventDefault();
             const point = getCanvasPoint(e);
-            
-            if (brushMode === 'none' && (!interaction.active || interaction.type !== 'pinchLayer')) {
-                 pushStateToHistory();
+            if (brushMode === 'none') {
+                 pushStateToHistory(false);
             }
-
             if (brushMode !== 'none' && activeLayer !== null) {
                 interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
                 applyErasure(point, point, interaction.mode);
                 return;
             }
-
             interaction.startX = point.x; interaction.startY = point.y;
-            
             if (activeLayer !== null) {
                 const l = layers[activeLayer];
                 const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                const bounds = { 
-                    width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, 
-                    cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
-                };
+                const bounds = { width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset };
                 const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
                 const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
-                
                 if (handle) {
                     interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
-                
                 interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                 return;
             }
-            
             for (let i = layers.length - 1; i >= 0; i--) {
                 const l = layers[i];
                 const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
@@ -1229,19 +1196,15 @@
             }
             deselectAll();
         }
-        
         function handleInteractionMove(e) {
             const isTouchEvent = !!e.touches;
-
             if (panZoomModeActive && interaction.active) {
                 e.preventDefault();
                 if (interaction.type === 'panCamera') {
                     const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
-                    const dx = clientX - interaction.startX;
-                    const dy = clientY - interaction.startY;
-                    camera.x = interaction.initialState.x + dx;
-                    camera.y = interaction.initialState.y + dy;
+                    camera.x = interaction.initialState.x + (clientX - interaction.startX);
+                    camera.y = interaction.initialState.y + (clientY - interaction.startY);
                 } else if (interaction.type === 'zoomCamera' && isTouchEvent && e.touches.length === 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -1249,45 +1212,29 @@
                     const scaleRatio = currentDist / interaction.initialDist;
                     const newScale = interaction.initialState.scale * scaleRatio;
                     camera.x = currentMidpoint.x - (interaction.initialMidpoint.x - interaction.initialState.x) * (newScale / interaction.initialState.scale);
-                    camera.y = currentMidpoint.y - (interaction.initialMidpoint.y - interaction.initialState.y) * (newScale / interaction.initialState.scale);
+                    camera.y = currentMidpoint.y - (interaction.initialMidpoint.y - interaction.initialState.y) * (newScale / camera.scale);
                     camera.scale = newScale;
                 }
                 clampCamera();
                 draw();
                 return;
             }
-
-            if (interaction.active) {
-                e.preventDefault();
-            } else {
-                interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); 
-                return;
-            }
-
+            if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return; }
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const rect = canvas.getBoundingClientRect();
                 const currentMidpoint = getMidpoint(t1, t2);
-                const deltaX = currentMidpoint.x - interaction.initialMidpoint.x;
-                const deltaY = currentMidpoint.y - interaction.initialMidpoint.y;
-                l.x = interaction.initialState.x + (deltaX / rect.width) * 100;
-                l.y = interaction.initialState.y + (deltaY / rect.height) * 100;
+                l.x = interaction.initialState.x + ((currentMidpoint.x - interaction.initialMidpoint.x) / rect.width) * 100;
+                l.y = interaction.initialState.y + ((currentMidpoint.y - interaction.initialMidpoint.y) / rect.height) * 100;
                 const currentDx = t2.clientX - t1.clientX, currentDy = t2.clientY - t1.clientY;
                 const currentAngle = Math.atan2(currentDy, currentDx);
-                const deltaAngle = currentAngle - interaction.initialAngle;
-                l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI);
+                l.rot = interaction.initialState.rot + ((currentAngle - interaction.initialAngle) * 180 / Math.PI);
                 const currentDist = Math.hypot(currentDx, currentDy);
-                if (interaction.initialDist > 1) {
-                    l.size = interaction.initialState.size * (currentDist / interaction.initialDist);
-                }
-                updateAllControls();
-                draw();
-                return;
+                if (interaction.initialDist > 1) { l.size = interaction.initialState.size * (currentDist / interaction.initialDist); }
+                updateAllControls(); draw(); return;
             }
-
             const point = getCanvasPoint(e);
-            
             if (interaction.type === 'brush') {
                 applyErasure(interaction.lastPoint, point, interaction.mode);
             } else {
@@ -1296,48 +1243,30 @@
                 const iState = interaction.initialState;
                 if (interaction.type === 'dragLayer') {
                     const l = layers[interaction.index];
-                    l.x = iState.x + (dx / W()) * 100;
-                    l.y = iState.y + (dy / H()) * 100;
+                    l.x = iState.x + (dx / W()) * 100; l.y = iState.y + (dy / H()) * 100;
                 } else if (interaction.type === 'dragText') {
                     const t = textLayers[interaction.index];
-                    t.x = iState.x + (dx / W()) * 100;
-                    t.y = iState.y + (dy / H()) * 100;
+                    t.x = iState.x + (dx / W()) * 100; t.y = iState.y + (dy / H()) * 100;
                 } else if (interaction.type === 'resizeLayer' || interaction.type === 'resizeText') {
                     const item = (interaction.type === 'resizeLayer') ? layers[interaction.index] : textLayers[interaction.index];
-                    const cx = W() * (iState.x / 100);
-                    const cy = H() * (iState.y / 100);
+                    const cx = W() * (iState.x / 100), cy = H() * (iState.y / 100);
                     const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
                     const currentDist = Math.hypot(point.x - cx, point.y - cy);
-                    if (initialDist > 1) {
-                        const newSize = iState.size * (currentDist / initialDist);
-                        item.size = Math.max(5, newSize);
-                    }
+                    if (initialDist > 1) { item.size = Math.max(5, iState.size * (currentDist / initialDist)); }
                 }
-                updateAllControls();
-                draw();
+                updateAllControls(); draw();
             }
             interaction.lastPoint = point;
         }
-        
         function handleInteractionEnd() { 
-             if (panZoomModeActive) {
-                interaction.active = false;
-                updateCursor();
-                return;
-            }
+             if (panZoomModeActive) { interaction.active = false; updateCursor(); return; }
              if (interaction.active && interaction.type === 'brush') {
-                pushStateToHistory();
+                pushStateToHistory(true);
             }
             interaction.active = false;
         }
-        
-        function openTemplateOverlay() {
-            templateOverlay.classList.add('visible');
-        }
-        function closeTemplateOverlay() {
-            templateOverlay.classList.remove('visible');
-        }
-        
+        function openTemplateOverlay() { templateOverlay.classList.add('visible'); }
+        function closeTemplateOverlay() { templateOverlay.classList.remove('visible'); }
         function handleTemplateClick(e) {
             if (!img) return toast('Upload an image first');
             const templateFilename = e.currentTarget.dataset.template;
@@ -1346,226 +1275,116 @@
             image.onload = () => { addImageLayer(image, templateFilename); closeTemplateOverlay(); };
             image.src = templateFilename;
         }
-
         function setupListeners() {
             fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
-            ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
-                e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
-            }));
-            
+            ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => { e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]); }));
             document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
             moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
             closeOverlayBtn.addEventListener('click', closeTemplateOverlay);
             templateOverlay.addEventListener('click', (e) => { if (e.target === templateOverlay) closeTemplateOverlay(); });
-
             document.getElementById('mg-template-file').addEventListener('change', e => {
                 if (!img) return toast('Upload an image first');
                 const file = e.target.files[0];
                 if (!file) { e.target.value = null; return; }
-                if (file.type !== 'image/png' || file.size > 5 * 1024 * 1024) {
-                    toast('Invalid PNG file'); e.target.value = null; return;
-                }
+                if (file.type !== 'image/png' || file.size > 5 * 1024 * 1024) { toast('Invalid PNG file'); e.target.value = null; return; }
                 const reader = new FileReader();
-                reader.onload = () => {
-                    const image = new Image();
-                    image.onload = () => addImageLayer(image, reader.result);
-                    image.src = reader.result;
-                };
-                reader.readAsDataURL(file);
-                e.target.value = null;
+                reader.onload = () => { const image = new Image(); image.onload = () => addImageLayer(image, reader.result); image.src = reader.result; };
+                reader.readAsDataURL(file); e.target.value = null;
             });
-
-            eraseToggleBtn.addEventListener('click', () => {
-                if (activeLayer !== null) {
-                    brushMode = brushMode === 'erase' ? 'none' : 'erase';
-                    toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off');
-                    updateAllControls(); draw();
-                }
-            });
-            uneraseToggleBtn.addEventListener('click', () => {
-                if (activeLayer !== null) { 
-                    brushMode = brushMode === 'unerase' ? 'none' : 'unerase';
-                    toast(brushMode === 'unerase' ? 'Un-erase Mode On' : 'Un-erase Mode Off');
-                    updateAllControls(); draw();
-                }
-            });
+            eraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'erase' ? 'none' : 'erase'; toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off'); updateAllControls(); draw(); } });
+            uneraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'unerase' ? 'none' : 'unerase'; toast(brushMode === 'unerase' ? 'Un-erase Mode On' : 'Un-erase Mode Off'); updateAllControls(); draw(); } });
             undoBtn.addEventListener('click', performUndo);
-
-            eraseSizeSlider.addEventListener('input', (e) => {
-                if (brushMode !== 'none') {
-                    eraserSize = +e.target.value;
-                    eraseSizeVal.textContent = eraserSize;
-                    draw();
-                }
-            });
-
+            eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; draw(); } });
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
-            
             ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate', 'mg-opacity', 'mg-light'].forEach(id => {
                 const el = document.getElementById(id);
                 el.addEventListener('input', (e) => {
                     if(activeLayer === null) return;
                     const l = layers[activeLayer];
-                    if(id === 'mg-pos-x') l.x = +e.target.value;
-                    if(id === 'mg-pos-y') l.y = 100 - e.target.value;
-                    if(id === 'mg-size') l.size = +e.target.value;
-                    if(id === 'mg-crop-y') l.cropY = +e.target.value;
-                    if(id === 'mg-rotate') l.rot = +e.target.value;
-                    if(id === 'mg-opacity') l.opacity = +e.target.value;
-                    if(id === 'mg-light') l.light = +e.target.value;
+                    if(id === 'mg-pos-x') l.x = +e.target.value; if(id === 'mg-pos-y') l.y = 100 - e.target.value; if(id === 'mg-size') l.size = +e.target.value; if(id === 'mg-crop-y') l.cropY = +e.target.value; if(id === 'mg-rotate') l.rot = +e.target.value; if(id === 'mg-opacity') l.opacity = +e.target.value; if(id === 'mg-light') l.light = +e.target.value;
                     updateImageControls(); draw();
                 });
-                el.addEventListener('change', () => { if (activeLayer !== null) pushStateToHistory(); });
+                el.addEventListener('mousedown', () => { if (activeLayer !== null) pushStateToHistory(false); });
             });
-
-            document.getElementById('mg-rotate-icon').addEventListener('click', () => {
-                if (activeLayer !== null) { 
-                    pushStateToHistory(); 
-                    layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; 
-                    updateImageControls(); draw(); toast('Rotated 90°');
-                }
-            });
-            document.getElementById('mg-flip-icon').addEventListener('click', () => { 
-                if (activeLayer !== null) { 
-                    pushStateToHistory(); 
-                    layers[activeLayer].flip = !layers[activeLayer].flip; 
-                    draw(); toast('Flipped Horizontally');
-                }
-            });
-            
-            txtArea.addEventListener('input', e => {
-                if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true);
-                if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); draw(); }
-            });
-            txtArea.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(); });
-
+            document.getElementById('mg-rotate-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; updateImageControls(); draw(); toast('Rotated 90°'); } });
+            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].flip = !layers[activeLayer].flip; draw(); toast('Flipped Horizontally'); } });
+            txtArea.addEventListener('input', e => { if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true); if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); draw(); } });
+            txtArea.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             ['mg-text-size', 'mg-text-pos-x', 'mg-text-pos-y'].forEach(id => {
                 const el = document.getElementById(id);
                 el.addEventListener('input', (e) => {
                     if (activeTextLayer === null) return;
                     const t = textLayers[activeTextLayer];
-                    if (id === 'mg-text-size') t.size = +e.target.value;
-                    if (id === 'mg-text-pos-x') t.x = +e.target.value;
-                    if (id === 'mg-text-pos-y') t.y = +e.target.value;
+                    if (id === 'mg-text-size') t.size = +e.target.value; if (id === 'mg-text-pos-x') t.x = +e.target.value; if (id === 'mg-text-pos-y') t.y = +e.target.value;
                     updateTextControls(); draw();
                 });
-                el.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(); });
+                el.addEventListener('mousedown', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             });
-
             panZoomToggleBtn.addEventListener('click', () => {
-                panZoomModeActive = !panZoomModeActive;
-                panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
-                if (panZoomModeActive) {
-                    deselectAll();
-                    toast("Pan/Zoom Mode On");
-                } else {
-                    toast("Pan/Zoom Mode Off");
-                }
+                panZoomModeActive = !panZoomModeActive; panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
+                if (panZoomModeActive) { deselectAll(); toast("Pan/Zoom Mode On"); } else { toast("Pan/Zoom Mode Off"); }
                 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
                 zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
-                updateAllControls();
-                updateCursor();
-                draw();
+                updateAllControls(); updateCursor(); draw();
             });
-
             const zoomWithButtons = (factor) => {
                 if (!panZoomModeActive) return;
                 const newScale = camera.scale * factor;
                 const rect = canvas.getBoundingClientRect();
-                const viewCenterX = rect.width / 2;
-                const viewCenterY = rect.height / 2;
+                const viewCenterX = rect.width / 2, viewCenterY = rect.height / 2;
                 camera.x = viewCenterX - (viewCenterX - camera.x) * (newScale / camera.scale);
                 camera.y = viewCenterY - (viewCenterY - camera.y) * (newScale / camera.scale);
                 camera.scale = newScale;
-                clampCamera();
-                draw();
+                clampCamera(); draw();
             };
-
             zoomInBtn.addEventListener('click', () => zoomWithButtons(1.2));
             zoomOutBtn.addEventListener('click', () => zoomWithButtons(1 / 1.2));
-
-            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
+            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
-            
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                const tempCamera = { ...camera };
-                const wasInPanZoom = panZoomModeActive;
-                
-                camera = { x: 0, y: 0, scale: 1 };
-                panZoomModeActive = false; 
-                panZoomToggleBtn.classList.remove('active');
-                zoomControls.classList.add('hidden');
-                deselectAll(); 
-
+                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
+                camera = { x: 0, y: 0, scale: 1 }; panZoomModeActive = false; 
+                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); deselectAll(); 
                 setTimeout(() => {
-                    const link = document.createElement('a');
-                    link.download = `adhd-meme.png`;
-                    link.href = canvas.toDataURL('image/png', 0.95);
-                    link.click();
-                    
-                    camera = tempCamera;
-                    panZoomModeActive = wasInPanZoom; 
-                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom);
-                    zoomControls.classList.toggle('hidden', !wasInPanZoom);
-                    updateAllControls();
-                    draw();
+                    const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
+                    camera = tempCamera; panZoomModeActive = wasInPanZoom; 
+                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom || !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0)));
+                    updateAllControls(); draw();
                 }, 100);
             });
-
             document.getElementById('mg-share').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
                 const memeLink = '[replace this with the image from your downloads, you wonderful, hyper-active degen]';
                 const tweet = `Got distracted & made this!\n\nCheck out: ${memeLink} \n\nhttps://adhdegens.fun/ $ADHD`;
                 window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`, '_blank');
             });
-            
             document.querySelectorAll('.fieldset-toggle-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const fieldset = btn.closest('fieldset');
+                    e.preventDefault(); const fieldset = btn.closest('fieldset');
                     if (fieldset) {
-                        fieldset.classList.toggle('minimized');
-                        const isMinimized = fieldset.classList.contains('minimized');
-                        btn.textContent = isMinimized ? '+' : '—';
-                        btn.setAttribute('aria-expanded', !isMinimized);
+                        fieldset.classList.toggle('minimized'); const isMinimized = fieldset.classList.contains('minimized');
+                        btn.textContent = isMinimized ? '+' : '—'; btn.setAttribute('aria-expanded', !isMinimized);
                         btn.setAttribute('aria-label', isMinimized ? 'Maximize section' : 'Minimize section');
                     }
                 });
             });
-
             canvas.addEventListener('mousedown', handleInteractionStart);
             canvas.addEventListener('mousemove', handleInteractionMove);
             window.addEventListener('mouseup', handleInteractionEnd);
-            canvas.addEventListener('mouseleave', () => {
-                if (interaction.active) handleInteractionEnd();
-                interaction.lastPoint = null;
-                if (brushMode !== 'none') draw();
-            });
+            canvas.addEventListener('mouseleave', () => { if (interaction.active) handleInteractionEnd(); interaction.lastPoint = null; if (brushMode !== 'none') draw(); });
             canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
             canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
             window.addEventListener('touchend', handleInteractionEnd);
             window.addEventListener('resize', fitCanvasToContainer);
-
-            document.addEventListener('keydown', (e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-                    if (!undoBtn.disabled) { e.preventDefault(); performUndo(); }
-                }
-            });
+            document.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'z') { if (!undoBtn.disabled) { e.preventDefault(); performUndo(); } } });
         }
-
         function resetApp() {
             img = null; layers = []; activeLayer = null; textLayers = []; activeTextLayer = null;
-            brushMode = 'none';
-            eraserSize = 100;
-            historyStack = [];
-            fileInput.value = null;
-            panZoomModeActive = false;
-            camera = { x: 0, y: 0, scale: 1 };
-            panZoomToggleBtn.classList.remove('active');
-            zoomControls.classList.add('hidden');
-            preview.classList.add('no-image');
-            canvas.style.width = ''; canvas.style.height = '';
+            brushMode = 'none'; eraserSize = 100; historyStack = []; fileInput.value = null;
+            panZoomModeActive = false; camera = { x: 0, y: 0, scale: 1 };
+            panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden');
+            preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
             refreshLayerUI(); refreshTextThumbs(); updateAllControls();
             resizeCanvasCSS(800, 600); draw();
