@@ -117,7 +117,6 @@
             border: 2px solid var(--ink);
             padding: .8rem; margin: 0; text-align: left;
         }
-        /* --- UPDATED --- For minimize button layout */
         .mg-controls legend {
             font-size: 1rem;
             font-weight: normal;
@@ -130,7 +129,6 @@
         legend > span {
             flex-shrink: 0;
         }
-        /* --- NEW --- Creates the visual line in the legend */
         .legend-line {
             flex-grow: 1;
             height: 2px;
@@ -244,7 +242,6 @@
             transform: translate(2px, 2px);
             box-shadow: 0px 0px 0px var(--shadow);
         }
-        /* --- NEW --- Active state for main buttons */
         .mg-btn.active {
             background-color: var(--mid);
             box-shadow: none;
@@ -306,14 +303,13 @@
         /* --- MOBILE LAYOUT ADJUSTMENTS --- */
         @media (max-width: 899px) {
             body {
-                padding: 10px; /* Reduce outer padding on mobile */
+                padding: 10px;
             }
             #adhd-meme-generator {
-                padding: 0.5rem; /* Reduce inner padding on mobile */
+                padding: 0.5rem;
             }
-            /* --- Reorder elements for mobile view using flexbox 'order' --- */
             .mg-preview-wrapper {
-                order: -1; /* Make preview appear before controls */
+                order: -1;
             }
         }
 
@@ -370,7 +366,6 @@
         #mg-template-overlay-close { position: absolute; top: 8px; right: 10px; background: none; border: none; line-height: 1; cursor: pointer; padding: 5px; }
         .mg-layer-thumb .delete-layer, .mg-text-thumb .delete-layer { position: absolute; top: -1px; right: -1px; color: #fff; font-size: .7rem; font-weight: bold; line-height: 1; padding: 1px 4px; cursor: pointer; }
     
-        /* --- NEW --- Styles for Pan/Zoom controls */
         .hidden { display: none !important; }
         #mg-zoom-controls {
             position: absolute;
@@ -424,7 +419,6 @@
                             <button class="fieldset-toggle-btn" aria-label="Minimize section" aria-expanded="true">—</button>
                         </legend>
                         <div class="fieldset-content">
-                            <!-- Hint will be inserted here by JS -->
                             <div id="mg-layers" class="mg-layers"></div>
                             <h3>Add Layer</h3>
                             <div class="mg-template-container">
@@ -517,7 +511,6 @@
                 <div class="mg-preview no-image">
                     <canvas id="mg-canvas" width="800" height="600"></canvas>
                     <input type="file" id="mg-file" accept="image/*" style="display:none"/>
-                    <!-- --- NEW --- Zoom controls for desktop -->
                     <div id="mg-zoom-controls" class="hidden">
                         <button id="mg-zoom-in">+</button>
                         <button id="mg-zoom-out">−</button>
@@ -527,7 +520,6 @@
         </div>
 
         <div class="mg-actions">
-            <!-- --- NEW --- Pan/Zoom button -->
             <button class="mg-btn" id="mg-panzoom-toggle">Pan/Zoom</button>
             <button class="mg-btn" id="mg-reset">Reset</button>
             <button class="mg-btn" id="mg-download">Download</button>
@@ -538,14 +530,49 @@
 
 <div id="mg-toast"></div>
 
-<!-- --- UNCHANGED --- Template Overlay -->
 <div id="mg-template-overlay">
-    <!-- ... overlay content ... -->
+    <div id="mg-template-grid-wrapper" class="window">
+        <button id="mg-template-overlay-close">X</button>
+        <h4>Choose a template</h4>
+        <div id="mg-template-grid">
+            <div class="mg-template" data-template="./assets/maker/1.png"><img src="./assets/maker/1.png" alt="Template 1"></div>
+            <div class="mg-template" data-template="./assets/maker/2.png"><img src="./assets/maker/2.png" alt="Template 2"></div>
+            <div class="mg-template" data-template="./assets/maker/3.png"><img src="./assets/maker/3.png" alt="Template 3"></div>
+            <div class="mg-template" data-template="./assets/maker/4.png"><img src="./assets/maker/4.png" alt="Template 4"></div>
+            <div class="mg-template" data-template="./assets/maker/5.png"><img src="./assets/maker/5.png" alt="Template 5"></div>
+            <div class="mg-template" data-template="./assets/maker/6.png"><img src="./assets/maker/6.png" alt="Template 6"></div>
+            <div class="mg-template" data-template="./assets/maker/7.png"><img src="./assets/maker/7.png" alt="Template 7"></div>
+            <div class="mg-template" data-template="./assets/maker/8.png"><img src="./assets/maker/8.png" alt="Template 8"></div>
+            <div class="mg-template" data-template="./assets/maker/9.png"><img src="./assets/maker/9.png" alt="Template 9"></div>
+            <div class="mg-template" data-template="./assets/maker/10.png"><img src="./assets/maker/10.png" alt="Template 10"></div>
+            <div class="mg-template" data-template="./assets/maker/11.png"><img src="./assets/maker/11.png" alt="Template 11"></div>
+            <div class="mg-template" data-template="./assets/maker/12.png"><img src="./assets/maker/12.png" alt="Template 12"></div>
+            <div class="mg-template" data-template="./assets/maker/13.png"><img src="./assets/maker/13.png" alt="Template 13"></div>
+            <div class="mg-template" data-template="./assets/maker/14.png"><img src="./assets/maker/14.png" alt="Template 14"></div>
+            <div class="mg-template" data-template="./assets/maker/15.png"><img src="./assets/maker/15.png" alt="Template 15"></div>
+            <div class="mg-template" data-template="./assets/maker/16.png"><img src="./assets/maker/16.png" alt="Template 16"></div>
+            <div class="mg-template" data-template="./assets/maker/17.png"><img src="./assets/maker/17.png" alt="Template 17"></div>
+            <div class="mg-template" data-template="./assets/maker/18.png"><img src="./assets/maker/18.png" alt="Template 18"></div>
+            <div class="mg-template" data-template="./assets/maker/19.png"><img src="./assets/maker/19.png" alt="Template 19"></div>
+            <div class="mg-template" data-template="./assets/maker/20.png"><img src="./assets/maker/20.png" alt="Template 20"></div>
+            <div class="mg-template" data-template="./assets/maker/21.png"><img src="./assets/maker/21.png" alt="Template 21"></div>
+            <div class="mg-template" data-template="./assets/maker/22.png"><img src="./assets/maker/22.png" alt="Template 22"></div>
+            <div class="mg-template" data-template="./assets/maker/23.png"><img src="./assets/maker/23.png" alt="Template 23"></div>
+            <div class="mg-template" data-template="./assets/maker/24.png"><img src="./assets/maker/24.png" alt="Template 24"></div>
+            <div class="mg-template" data-template="./assets/maker/25.png"><img src="./assets/maker/25.png" alt="Template 25"></div>
+            <div class="mg-template" data-template="./assets/maker/26.png"><img src="./assets/maker/26.png" alt="Template 26"></div>
+            <div class="mg-template" data-template="./assets/maker/27.png"><img src="./assets/maker/27.png" alt="Template 27"></div>
+            <div class="mg-template" data-template="./assets/maker/28.png"><img src="./assets/maker/28.png" alt="Template 28"></div>
+            <div class="mg-template" data-template="./assets/maker/29.png"><img src="./assets/maker/29.png" alt="Template 29"></div>
+            <div class="mg-template" data-template="./assets/maker/30.png"><img src="./assets/maker/30.png" alt="Template 30"></div>
+            <div class="mg-template" data-template="./assets/maker/31.png"><img src="./assets/maker/31.png" alt="Template 31"></div>
+            <div class="mg-template" data-template="./assets/maker/32.png"><img src="./assets/maker/32.png" alt="Template 32"></div>
+        </div>
+    </div>
 </div>
 
 <script>
     (function () {
-        // ---UNCHANGED: Element references (mostly) ---
         const fileInput = document.getElementById('mg-file');
         const canvas = document.getElementById('mg-canvas');
         const preview = document.querySelector('.mg-preview');
@@ -564,8 +591,6 @@
         const undoBtn = document.getElementById('mg-undo');
         const eraseSizeSlider = document.getElementById('mg-erase-size');
         const eraseSizeVal = document.getElementById('mg-erase-size-val');
-
-        // --- NEW --- Pan/Zoom Element references
         const panZoomToggleBtn = document.getElementById('mg-panzoom-toggle');
         const zoomControls = document.getElementById('mg-zoom-controls');
         const zoomInBtn = document.getElementById('mg-zoom-in');
@@ -582,13 +607,9 @@
         const HANDLE_SIZE = 12;
         const TOUCH_HANDLE_RADIUS = 40;
         const DPR = window.devicePixelRatio || 1;
-
-        // --- NEW --- State for pan/zoom mode and camera properties
         let panZoomModeActive = false;
         let camera = { x: 0, y: 0, scale: 1 };
 
-
-        // ---UNCHANGED: Core drawing and utility functions---
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
             ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(DPR, DPR);
@@ -605,15 +626,12 @@
         function fitCanvasToContainer() {
             if (!img) return;
             canvas.style.width = ''; canvas.style.height = '';
-
             const isMobile = window.innerWidth < 900;
             const heightMultiplier = isMobile ? 0.95 : 0.85;
-
             const containerWidth = previewWrapper.clientWidth;
             const containerHeight = window.innerHeight * heightMultiplier; 
             const imgAspectRatio = img.naturalWidth / img.naturalHeight;
             const containerAspectRatio = containerWidth / containerHeight;
-            
             if (imgAspectRatio > containerAspectRatio) {
                 canvas.style.width = containerWidth + 'px';
                 canvas.style.height = 'auto';
@@ -623,7 +641,6 @@
             }
         }
 
-        // ---UNCHANGED: Control update logic...
         function updateCursor() {
             if (panZoomModeActive) {
                 canvas.style.cursor = interaction.active && interaction.type === 'panCamera' ? 'grabbing' : 'grab';
@@ -631,7 +648,6 @@
                 canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
             }
         }
-        // ... rest of the update control functions are unchanged
         function updateAllControls() { updateImageControls(); updateTextControls(); }
         function updateImageControls() {
             const disabled = activeLayer === null || panZoomModeActive;
@@ -698,13 +714,13 @@
                 txtArea.value = '';
             }
         }
-        
-        // ---UNCHANGED: Layer selection, history, UI refresh logic...
         function selectLayer(i) {
+            if (panZoomModeActive) return;
             activeLayer = i; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
         function selectTextLayer(i) {
+            if (panZoomModeActive) return;
             brushMode = 'none';
             activeTextLayer = i; activeLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
@@ -714,26 +730,125 @@
             activeLayer = null; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
-        // ... (createSnapshot, pushStateToHistory, performUndo, refreshLayerUI, refreshTextThumbs, text layer functions are all unchanged)
+        function createSnapshot() {
+            const layerSnap = layers.map(l => {
+                const newLayer = { ...l, img: l.img };
+                if (l.eraseMask) {
+                    const maskCopy = document.createElement('canvas');
+                    maskCopy.width = l.eraseMask.width;
+                    maskCopy.height = l.eraseMask.height;
+                    maskCopy.getContext('2d').drawImage(l.eraseMask, 0, 0);
+                    newLayer.eraseMask = maskCopy;
+                }
+                return newLayer;
+            });
+            const textLayerSnap = JSON.parse(JSON.stringify(textLayers));
+            return { layers: layerSnap, textLayers: textLayerSnap };
+        }
+        function pushStateToHistory() {
+            if (historyStack.length > HISTORY_LIMIT) {
+                historyStack.shift();
+            }
+            historyStack.push(createSnapshot());
+            updateAllControls();
+        }
+        function performUndo() {
+            if (historyStack.length === 0) return;
+            const prevState = historyStack.pop();
+            layers = prevState.layers;
+            textLayers = prevState.textLayers;
+            if (activeLayer !== null && !layers[activeLayer]) deselectAll();
+            if (activeTextLayer !== null && !textLayers[activeTextLayer]) deselectAll();
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
+            toast("Undo");
+        }
         
-        // --- NEW --- Camera clamping function
+        function refreshLayerUI() {
+            const wrap = document.getElementById('mg-layers');
+            const fieldsetContent = wrap.parentElement; 
+            const existingHint = document.getElementById('mg-layers-hint');
+            if (existingHint) {
+                existingHint.remove();
+            }
+            if (layers.length > 1) {
+                const hintEl = document.createElement('div');
+                hintEl.id = 'mg-layers-hint';
+                hintEl.textContent = 'Click to choose layer';
+                fieldsetContent.insertBefore(hintEl, wrap);
+            }
+            wrap.innerHTML = '';
+            layers.forEach((layer, i) => {
+                const div = document.createElement('div');
+                div.className = `mg-layer-thumb ${i === activeLayer ? 'active' : ''}`;
+                div.innerHTML = `<img src="${layer.src}" alt="Layer ${i + 1}" style="width: 100%; height: 100%; object-fit: cover;"><span class="delete-layer">x</span>`;
+                div.onclick = () => selectLayer(i);
+                div.querySelector('.delete-layer').onclick = (e) => {
+                    e.stopPropagation();
+                    layers.splice(i, 1);
+                    if (activeLayer === i) deselectAll();
+                    else if (activeLayer > i) activeLayer--;
+                    refreshLayerUI(); draw(); toast('Layer removed');
+                };
+                wrap.appendChild(div);
+            });
+        }
+        function refreshTextThumbs() {
+            const bar = document.getElementById('mg-text-layer-bar');
+            [...bar.querySelectorAll('.mg-text-thumb')].forEach(e => e.remove());
+            textLayers.forEach((t, i) => {
+                const d = document.createElement('div');
+                d.className = `mg-text-thumb ${i === activeTextLayer ? 'active' : ''}`;
+                d.textContent = t.text.trim().slice(0, 8) || 'Text';
+                d.onclick = () => selectTextLayer(i);
+                const del = document.createElement('span');
+                del.className = 'delete-layer'; del.textContent = 'x';
+                del.onclick = (e) => { e.stopPropagation(); deleteTextLayer(i); };
+                d.appendChild(del);
+                bar.insertBefore(d, document.getElementById('mg-text-layer-add'));
+            });
+            document.getElementById('mg-text-layer-add').classList.toggle('disabled', !img);
+        }
+        function addTextLayer(isImplicit = false) {
+            if (!img || textLayers.length >= 10) return;
+            textLayers.push({ text: '', size: 40, x: 50, y: 50, color: 'white' });
+            selectTextLayer(textLayers.length - 1);
+            if (!isImplicit) toast('Text layer added');
+        }
+        function deleteTextLayer(i) {
+            textLayers.splice(i, 1);
+            if (activeTextLayer === i) deselectAll();
+            else if(activeTextLayer > i) activeTextLayer--;
+            refreshTextThumbs();
+            draw(); toast('Text layer removed');
+        }
+        function getTextBounds(textLayer) {
+            const t = textLayer;
+            const fontPx = t.size * (W() / 800);
+            ctx.font = `700 ${fontPx}px 'Poppins', 'Arial Black', sans-serif`;
+            const lines = t.text.split('\n');
+            let maxWidth = 0;
+            lines.forEach(line => { if (ctx.measureText(line).width > maxWidth) maxWidth = ctx.measureText(line).width; });
+            const totalHeight = lines.length * fontPx * 1.1;
+            const cx = W() * (t.x / 100), cy = H() * (t.y / 100);
+            return { x: cx - maxWidth / 2, y: cy - totalHeight / 2, width: maxWidth, height: totalHeight, cx, cy };
+        }
+
         function clampCamera() {
-            camera.scale = Math.max(1, camera.scale); // Cannot zoom out more than 1x
-            
+            camera.scale = Math.max(1, camera.scale);
             const maxPanX = 0;
             const minPanX = -(W() * camera.scale - W());
             const maxPanY = 0;
             const minPanY = -(H() * camera.scale - H());
-
             camera.x = Math.max(minPanX, Math.min(maxPanX, camera.x));
             camera.y = Math.max(minPanY, Math.min(maxPanY, camera.y));
         }
 
-        // --- MODIFIED --- Main draw function now uses camera state
         function draw() {
             ctx.clearRect(0, 0, W(), H());
 
-            // --- NEW --- Apply camera transformations
             ctx.save();
             ctx.translate(camera.x, camera.y);
             ctx.scale(camera.scale, camera.scale);
@@ -751,11 +866,9 @@
                 const x = W() * (l.x / 100);
                 const y = H() * (l.y / 100);
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                
                 const lightValue = l.light ?? 0;
                 const needsTempCanvas = l.eraseMask || lightValue > 0;
                 let imageToDraw = l.img;
-
                 if (needsTempCanvas) {
                     if (tempLayerCanvas.width !== l.img.naturalWidth || tempLayerCanvas.height !== l.img.naturalHeight) {
                         tempLayerCanvas.width = l.img.naturalWidth;
@@ -763,25 +876,20 @@
                     } else {
                         tempLayerCtx.clearRect(0, 0, tempLayerCanvas.width, tempLayerCanvas.height);
                     }
-                    
                     tempLayerCtx.drawImage(l.img, 0, 0);
-
                     if (l.eraseMask) {
                         tempLayerCtx.globalCompositeOperation = 'destination-out';
                         tempLayerCtx.drawImage(l.eraseMask, 0, 0);
                         tempLayerCtx.globalCompositeOperation = 'source-over';
                     }
-                    
                     if (lightValue > 0) {
                         tempLayerCtx.globalCompositeOperation = 'source-atop';
                         tempLayerCtx.fillStyle = `rgba(0, 0, 0, ${lightValue / 100})`;
                         tempLayerCtx.fillRect(0, 0, tempLayerCanvas.width, tempLayerCanvas.height);
                         tempLayerCtx.globalCompositeOperation = 'source-over';
                     }
-
                     imageToDraw = tempLayerCanvas;
                 }
-
                 ctx.save();
                 ctx.globalAlpha = (l.opacity ?? 100) / 100;
                 ctx.translate(x, y - yOffset);
@@ -808,58 +916,52 @@
                 });
             });
 
-            const highlightColor = '#00FF00';
-            if (activeLayer !== null && layers[activeLayer]) {
-                const l = layers[activeLayer];
-                const scale = l.size / 100;
-                const cropPercent = (l.cropY || 0) / 100;
-                const w = l.img.naturalWidth * scale;
-                const h = l.img.naturalHeight * (1 - cropPercent) * scale;
-                const x = W() * (l.x / 100);
-                const y = H() * (l.y / 100);
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                
-                ctx.save();
-                ctx.translate(x, y - yOffset);
-                ctx.rotate((l.rot * Math.PI) / 180);
-                ctx.strokeStyle = highlightColor; ctx.lineWidth = 2; ctx.strokeRect(-w/2, -h/2, w, h);
-                ctx.fillStyle = highlightColor;
-                const ho = HANDLE_SIZE / 2;
-                ctx.fillRect(-w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(-w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.restore();
-            }
-            
-            if (activeTextLayer !== null && textLayers[activeTextLayer]) {
-                const t = textLayers[activeTextLayer];
-                if (t.text.trim()) {
-                    const bounds = getTextBounds(t);
-                    ctx.strokeStyle = highlightColor;
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-                    const ho = HANDLE_SIZE / 2;
+            if (!panZoomModeActive) {
+                const highlightColor = '#00FF00';
+                if (activeLayer !== null && layers[activeLayer]) {
+                    const l = layers[activeLayer];
+                    const scale = l.size / 100;
+                    const cropPercent = (l.cropY || 0) / 100;
+                    const w = l.img.naturalWidth * scale;
+                    const h = l.img.naturalHeight * (1 - cropPercent) * scale;
+                    const x = W() * (l.x / 100);
+                    const y = H() * (l.y / 100);
+                    const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                    ctx.save();
+                    ctx.translate(x, y - yOffset);
+                    ctx.rotate((l.rot * Math.PI) / 180);
+                    ctx.strokeStyle = highlightColor; ctx.lineWidth = 2; ctx.strokeRect(-w/2, -h/2, w, h);
                     ctx.fillStyle = highlightColor;
-                    ctx.fillRect(bounds.x - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x + bounds.width - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x + bounds.width - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
+                    const ho = HANDLE_SIZE / 2;
+                    ctx.fillRect(-w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(-w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.restore();
+                }
+                if (activeTextLayer !== null && textLayers[activeTextLayer]) {
+                    const t = textLayers[activeTextLayer];
+                    if (t.text.trim()) {
+                        const bounds = getTextBounds(t);
+                        ctx.strokeStyle = highlightColor; ctx.lineWidth = 2;
+                        ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+                        const ho = HANDLE_SIZE / 2;
+                        ctx.fillStyle = highlightColor;
+                        ctx.fillRect(bounds.x - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
+                        ctx.fillRect(bounds.x + bounds.width - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
+                        ctx.fillRect(bounds.x - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
+                        ctx.fillRect(bounds.x + bounds.width - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
+                    }
                 }
             }
             
-            // --- NEW --- Restore camera before drawing cursor
             ctx.restore();
 
-            // --- MODIFIED --- Draw brush cursor *after* camera restore so it isn't zoomed/panned
             if (brushMode !== 'none' && activeLayer !== null && interaction.lastPoint) {
                 const point = interaction.lastPoint;
                 const isUnerase = brushMode === 'unerase';
-                // Transform point from world space to view space for drawing
                 const viewPointX = point.x * camera.scale + camera.x;
                 const viewPointY = point.y * camera.scale + camera.y;
-
                 ctx.save();
                 ctx.strokeStyle = isUnerase ? '#007BFF' : '#000000';
                 ctx.fillStyle = isUnerase ? 'rgba(0, 123, 255, 0.3)' : 'rgba(255,255,255,0.5)';
@@ -872,36 +974,170 @@
             }
         }
         
-        // ---UNCHANGED--- File handling, image adding/resizing...
+        function resizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const MAX_DIMENSION = 1920;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        let { naturalWidth: width, naturalHeight: height } = tempImg;
+                        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                            if (width > height) {
+                                height = (height / width) * MAX_DIMENSION;
+                                width = MAX_DIMENSION;
+                            } else {
+                                width = (width / height) * MAX_DIMENSION;
+                                height = MAX_DIMENSION;
+                            }
+                        }
+                        const offscreenCanvas = document.createElement('canvas');
+                        offscreenCanvas.width = width;
+                        offscreenCanvas.height = height;
+                        const offscreenCtx = offscreenCanvas.getContext('2d');
+                        offscreenCtx.drawImage(tempImg, 0, 0, width, height);
+                        resolve(offscreenCanvas.toDataURL('image/jpeg', 0.9));
+                    };
+                    tempImg.onerror = () => reject(new Error("Could not load temp image."));
+                    tempImg.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error("Could not read file."));
+                reader.readAsDataURL(file);
+            });
+        }
         
-        // --- MODIFIED --- getCanvasPoint now accounts for the camera
+        async function handleFile(file) {
+            if (!file) return;
+            let fileToProcess = file;
+            if (/\.heic$|\.heif$/i.test(file.name)) {
+                toast('Converting HEIC image...');
+                try {
+                    const conversionResult = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+                    fileToProcess = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                } catch (error) {
+                    console.error(error); toast('Could not convert HEIC file.'); return;
+                }
+            }
+            try {
+                toast('Processing image...');
+                const resizedImageSrc = await resizeImage(fileToProcess);
+                const image = new Image();
+                image.onload = () => {
+                    img = image;
+                    resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
+                    preview.classList.remove('no-image');
+                    document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
+                    fitCanvasToContainer();
+                    historyStack = [];
+                    camera = { x: 0, y: 0, scale: 1 };
+                    updateAllControls();
+                    draw();
+                };
+                image.onerror = () => toast('Could not load processed image.');
+                image.src = resizedImageSrc;
+            } catch (error) {
+                console.error(error); toast('Failed to process image.');
+            } finally {
+                fileInput.value = null;
+            }
+        }
+
+        function addImageLayer(image, src) {
+            if (layers.length >= 10) return toast('Maximum 10 layers allowed');
+            const MAX_DIM_PERCENT = 0.40;
+            const maxLayerWidth = W() * MAX_DIM_PERCENT;
+            const maxLayerHeight = H() * MAX_DIM_PERCENT;
+            const scaleToFitWidth = maxLayerWidth / image.naturalWidth;
+            const scaleToFitHeight = maxLayerHeight / image.naturalHeight;
+            const finalScale = Math.min(scaleToFitWidth, scaleToFitHeight);
+            const initialSize = finalScale * 100;
+            layers.push({ img: image, src: src, x: 50, y: 50, size: initialSize, rot: 0, flip: false, cropY: 0, eraseMask: null, opacity: 100, light: 0 });
+            selectLayer(layers.length - 1);
+        }
+        
+        function applyErasure(startPoint, endPoint, mode) {
+            if (activeLayer === null) return;
+            const layer = layers[activeLayer];
+            if (!layer.eraseMask) {
+                layer.eraseMask = document.createElement('canvas');
+                layer.eraseMask.width = layer.img.naturalWidth;
+                layer.eraseMask.height = layer.img.naturalHeight;
+            }
+            const maskCtx = layer.eraseMask.getContext('2d');
+            const transformPoint = (p) => {
+                const scale = layer.size / 100;
+                const cropPercent = (layer.cropY || 0) / 100;
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const dx = p.x - (W() * (layer.x / 100));
+                const dy = p.y - (H() * (layer.y / 100) - yOffset);
+                const angle = -layer.rot * Math.PI / 180;
+                const rdx = dx * Math.cos(angle) - dy * Math.sin(angle);
+                const rdy = dx * Math.sin(angle) + dy * Math.cos(angle);
+                const fdx = rdx * (layer.flip ? -1 : 1);
+                const sdx = fdx / scale;
+                const sdy = rdy / scale;
+                return { x: sdx + layer.img.naturalWidth / 2, y: sdy + layer.img.naturalHeight / 2 };
+            };
+            const p1 = transformPoint(startPoint);
+            const p2 = transformPoint(endPoint);
+            const brushRadius = (eraserSize / (layer.size / 100)) / 2;
+            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            const steps = Math.max(1, Math.ceil(dist / (brushRadius * 0.5)));
+            for (let i = 0; i < steps; i++) {
+                const t = i / steps;
+                const x = p1.x + t * (p2.x - p1.x);
+                const y = p1.y + t * (p2.y - p1.y);
+                if (mode === 'erase') {
+                    maskCtx.globalCompositeOperation = 'source-over';
+                    const gradient = maskCtx.createRadialGradient(x, y, 0, x, y, brushRadius);
+                    gradient.addColorStop(0, 'rgba(0,0,0,1)');
+                    gradient.addColorStop(0.8, 'rgba(0,0,0,1)');
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    maskCtx.fillStyle = gradient;
+                    maskCtx.fillRect(x - brushRadius, y - brushRadius, brushRadius * 2, brushRadius * 2);
+                } else {
+                    maskCtx.globalCompositeOperation = 'destination-out';
+                    maskCtx.fillStyle = 'black';
+                    maskCtx.beginPath();
+                    maskCtx.arc(x, y, brushRadius, 0, Math.PI * 2);
+                    maskCtx.fill();
+                }
+            }
+            draw();
+        }
+        function getMidpoint(t1, t2) {
+            return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+        }
         function getCanvasPoint(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            // Calculate point in canvas's view space
             const viewX = (clientX - rect.left) / rect.width * W();
             const viewY = (clientY - rect.top) / rect.height * H();
-
-            // Transform back from view-space to world-space
             const worldX = (viewX - camera.x) / camera.scale;
             const worldY = (viewY - camera.y) / camera.scale;
-            
             return { x: worldX, y: worldY };
         }
-
-        // ---UNCHANGED--- Handle finding...
         function getHandleAtPoint(point, bounds, rotation = 0, radius = HANDLE_SIZE) {
-            // ... (this function is unchanged)
+            const cx = bounds.cx; const cy = bounds.cy;
+            const handles = {
+                tl: {x: -bounds.width/2, y: -bounds.height/2}, tr: {x: bounds.width/2, y: -bounds.height/2},
+                bl: {x: -bounds.width/2, y: bounds.height/2}, br: {x: bounds.width/2, y: bounds.height/2}
+            };
+            for (const name in handles) {
+                const handle = handles[name];
+                const angle = rotation * Math.PI / 180;
+                const rX = handle.x * Math.cos(angle) - handle.y * Math.sin(angle);
+                const rY = handle.x * Math.sin(angle) + handle.y * Math.cos(angle);
+                if (Math.hypot(point.x - (cx + rX), point.y - (cy + rY)) < radius) return name;
+            }
+            return null;
         }
-        
-        // --- MODIFIED --- Interaction handlers now split between Pan/Zoom and Layer editing
+
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
             const isTouchEvent = !!e.touches;
 
-            // --- NEW --- Pan/Zoom interaction logic
             if (panZoomModeActive) {
                 e.preventDefault();
                 if (isTouchEvent && e.touches.length === 2) {
@@ -914,7 +1150,6 @@
                         initialState: JSON.parse(JSON.stringify(camera))
                     };
                 } else {
-                    const rect = canvas.getBoundingClientRect();
                     const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
                     interaction = {
@@ -926,10 +1161,20 @@
                 }
                 return;
             }
-
-            // --- OLD --- Layer interaction logic (now in an 'else' block)
+            
             if (isTouchEvent && e.touches.length === 2 && activeLayer !== null) {
-                // ... (existing pinch-to-zoom layer logic is unchanged)
+                e.preventDefault();
+                pushStateToHistory();
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
+                interaction = {
+                    active: true, type: 'pinchLayer', index: activeLayer,
+                    initialDist: Math.hypot(dx, dy),
+                    initialAngle: Math.atan2(dy, dx),
+                    initialMidpoint: getMidpoint(t1, t2),
+                    initialState: JSON.parse(JSON.stringify(layers[activeLayer]))
+                };
+                return;
             }
             
             e.preventDefault();
@@ -940,21 +1185,56 @@
             }
 
             if (brushMode !== 'none' && activeLayer !== null) {
-                // ... (existing brush logic is unchanged)
+                interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
+                applyErasure(point, point, interaction.mode);
+                return;
+            }
+
+            interaction.startX = point.x; interaction.startY = point.y;
+            
+            if (activeLayer !== null) {
+                const l = layers[activeLayer];
+                const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const bounds = { 
+                    width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, 
+                    cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
+                };
+                const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
+                const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
+                
+                if (handle) {
+                    interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    return;
+                }
+                
+                interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                 return;
             }
             
-            interaction.startX = point.x; interaction.startY = point.y;
-
-            // ... (rest of existing layer/text selection/drag/resize logic is unchanged)
+            for (let i = layers.length - 1; i >= 0; i--) {
+                const l = layers[i];
+                const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const dx = point.x - W()*(l.x/100), dy = point.y - (H()*(l.y/100) - yOffset);
+                const angle = -l.rot * Math.PI / 180;
+                const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+                const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+                const w = l.img.naturalWidth * scale, h = l.img.naturalHeight * (1 - cropPercent) * scale;
+                if (Math.abs(localX) < w/2 && Math.abs(localY) < h/2) {
+                    selectLayer(i);
+                    interaction = { active: true, type: 'dragLayer', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    return;
+                }
+            }
+            deselectAll();
         }
         
         function handleInteractionMove(e) {
-            // --- NEW --- Pan/Zoom move logic
+            const isTouchEvent = !!e.touches;
+
             if (panZoomModeActive && interaction.active) {
                 e.preventDefault();
-                const isTouchEvent = !!e.touches;
-
                 if (interaction.type === 'panCamera') {
                     const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
@@ -966,11 +1246,8 @@
                     const t1 = e.touches[0], t2 = e.touches[1];
                     const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
                     const currentMidpoint = getMidpoint(t1,t2);
-
                     const scaleRatio = currentDist / interaction.initialDist;
                     const newScale = interaction.initialState.scale * scaleRatio;
-                    
-                    // Zoom from midpoint
                     camera.x = currentMidpoint.x - (interaction.initialMidpoint.x - interaction.initialState.x) * (newScale / interaction.initialState.scale);
                     camera.y = currentMidpoint.y - (interaction.initialMidpoint.y - interaction.initialState.y) * (newScale / interaction.initialState.scale);
                     camera.scale = newScale;
@@ -979,18 +1256,71 @@
                 draw();
                 return;
             }
-            
-            // --- OLD --- Layer move logic
+
             if (interaction.active) {
-                // ... (existing layer/text move/resize/brush logic is unchanged)
+                e.preventDefault();
             } else {
                 interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); 
                 return;
             }
+
+            if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
+                const l = layers[interaction.index];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const rect = canvas.getBoundingClientRect();
+                const currentMidpoint = getMidpoint(t1, t2);
+                const deltaX = currentMidpoint.x - interaction.initialMidpoint.x;
+                const deltaY = currentMidpoint.y - interaction.initialMidpoint.y;
+                l.x = interaction.initialState.x + (deltaX / rect.width) * 100;
+                l.y = interaction.initialState.y + (deltaY / rect.height) * 100;
+                const currentDx = t2.clientX - t1.clientX, currentDy = t2.clientY - t1.clientY;
+                const currentAngle = Math.atan2(currentDy, currentDx);
+                const deltaAngle = currentAngle - interaction.initialAngle;
+                l.rot = interaction.initialState.rot + (deltaAngle * 180 / Math.PI);
+                const currentDist = Math.hypot(currentDx, currentDy);
+                if (interaction.initialDist > 1) {
+                    l.size = interaction.initialState.size * (currentDist / interaction.initialDist);
+                }
+                updateAllControls();
+                draw();
+                return;
+            }
+
+            const point = getCanvasPoint(e);
+            
+            if (interaction.type === 'brush') {
+                applyErasure(interaction.lastPoint, point, interaction.mode);
+            } else {
+                const dx = point.x - interaction.startX;
+                const dy = point.y - interaction.startY;
+                const iState = interaction.initialState;
+                if (interaction.type === 'dragLayer') {
+                    const l = layers[interaction.index];
+                    l.x = iState.x + (dx / W()) * 100;
+                    l.y = iState.y + (dy / H()) * 100;
+                } else if (interaction.type === 'dragText') {
+                    const t = textLayers[interaction.index];
+                    t.x = iState.x + (dx / W()) * 100;
+                    t.y = iState.y + (dy / H()) * 100;
+                } else if (interaction.type === 'resizeLayer' || interaction.type === 'resizeText') {
+                    const item = (interaction.type === 'resizeLayer') ? layers[interaction.index] : textLayers[interaction.index];
+                    const cx = W() * (iState.x / 100);
+                    const cy = H() * (iState.y / 100);
+                    const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
+                    const currentDist = Math.hypot(point.x - cx, point.y - cy);
+                    if (initialDist > 1) {
+                        const newSize = iState.size * (currentDist / initialDist);
+                        item.size = Math.max(5, newSize);
+                    }
+                }
+                updateAllControls();
+                draw();
+            }
+            interaction.lastPoint = point;
         }
         
         function handleInteractionEnd() { 
-            if (panZoomModeActive) {
+             if (panZoomModeActive) {
                 interaction.active = false;
                 updateCursor();
                 return;
@@ -1000,29 +1330,142 @@
             }
             interaction.active = false;
         }
-
-        // ---UNCHANGED--- Template overlay logic...
         
-        function setupListeners() {
-            // ... (existing listeners are unchanged up to the action buttons)
+        function openTemplateOverlay() {
+            templateOverlay.classList.add('visible');
+        }
+        function closeTemplateOverlay() {
+            templateOverlay.classList.remove('visible');
+        }
+        
+        function handleTemplateClick(e) {
+            if (!img) return toast('Upload an image first');
+            const templateFilename = e.currentTarget.dataset.template;
+            if (!templateFilename) return;
+            const image = new Image();
+            image.onload = () => { addImageLayer(image, templateFilename); closeTemplateOverlay(); };
+            image.src = templateFilename;
+        }
 
-            // --- NEW --- Listeners for Pan/Zoom
+        function setupListeners() {
+            fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+            ['dragenter', 'dragover', 'drop'].forEach(ev => canvas.addEventListener(ev, e => {
+                e.preventDefault(); if (!img && ev === 'drop') handleFile(e.dataTransfer.files[0]);
+            }));
+            
+            document.querySelectorAll('.mg-template').forEach(t => t.addEventListener('click', handleTemplateClick));
+            moreTemplatesBtn.addEventListener('click', openTemplateOverlay);
+            closeOverlayBtn.addEventListener('click', closeTemplateOverlay);
+            templateOverlay.addEventListener('click', (e) => { if (e.target === templateOverlay) closeTemplateOverlay(); });
+
+            document.getElementById('mg-template-file').addEventListener('change', e => {
+                if (!img) return toast('Upload an image first');
+                const file = e.target.files[0];
+                if (!file) { e.target.value = null; return; }
+                if (file.type !== 'image/png' || file.size > 5 * 1024 * 1024) {
+                    toast('Invalid PNG file'); e.target.value = null; return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const image = new Image();
+                    image.onload = () => addImageLayer(image, reader.result);
+                    image.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+                e.target.value = null;
+            });
+
+            eraseToggleBtn.addEventListener('click', () => {
+                if (activeLayer !== null) {
+                    brushMode = brushMode === 'erase' ? 'none' : 'erase';
+                    toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off');
+                    updateAllControls(); draw();
+                }
+            });
+            uneraseToggleBtn.addEventListener('click', () => {
+                if (activeLayer !== null) { 
+                    brushMode = brushMode === 'unerase' ? 'none' : 'unerase';
+                    toast(brushMode === 'unerase' ? 'Un-erase Mode On' : 'Un-erase Mode Off');
+                    updateAllControls(); draw();
+                }
+            });
+            undoBtn.addEventListener('click', performUndo);
+
+            eraseSizeSlider.addEventListener('input', (e) => {
+                if (brushMode !== 'none') {
+                    eraserSize = +e.target.value;
+                    eraseSizeVal.textContent = eraserSize;
+                    draw();
+                }
+            });
+
+            document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
+            
+            ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate', 'mg-opacity', 'mg-light'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', (e) => {
+                    if(activeLayer === null) return;
+                    const l = layers[activeLayer];
+                    if(id === 'mg-pos-x') l.x = +e.target.value;
+                    if(id === 'mg-pos-y') l.y = 100 - e.target.value;
+                    if(id === 'mg-size') l.size = +e.target.value;
+                    if(id === 'mg-crop-y') l.cropY = +e.target.value;
+                    if(id === 'mg-rotate') l.rot = +e.target.value;
+                    if(id === 'mg-opacity') l.opacity = +e.target.value;
+                    if(id === 'mg-light') l.light = +e.target.value;
+                    updateImageControls(); draw();
+                });
+                el.addEventListener('change', () => { if (activeLayer !== null) pushStateToHistory(); });
+            });
+
+            document.getElementById('mg-rotate-icon').addEventListener('click', () => {
+                if (activeLayer !== null) { 
+                    pushStateToHistory(); 
+                    layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; 
+                    updateImageControls(); draw(); toast('Rotated 90°');
+                }
+            });
+            document.getElementById('mg-flip-icon').addEventListener('click', () => { 
+                if (activeLayer !== null) { 
+                    pushStateToHistory(); 
+                    layers[activeLayer].flip = !layers[activeLayer].flip; 
+                    draw(); toast('Flipped Horizontally');
+                }
+            });
+            
+            txtArea.addEventListener('input', e => {
+                if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true);
+                if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); draw(); }
+            });
+            txtArea.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(); });
+
+            ['mg-text-size', 'mg-text-pos-x', 'mg-text-pos-y'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', (e) => {
+                    if (activeTextLayer === null) return;
+                    const t = textLayers[activeTextLayer];
+                    if (id === 'mg-text-size') t.size = +e.target.value;
+                    if (id === 'mg-text-pos-x') t.x = +e.target.value;
+                    if (id === 'mg-text-pos-y') t.y = +e.target.value;
+                    updateTextControls(); draw();
+                });
+                el.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(); });
+            });
+
             panZoomToggleBtn.addEventListener('click', () => {
                 panZoomModeActive = !panZoomModeActive;
                 panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
-                
                 if (panZoomModeActive) {
-                    deselectAll(); // Deselect layers to hide highlights
+                    deselectAll();
                     toast("Pan/Zoom Mode On");
                 } else {
                     toast("Pan/Zoom Mode Off");
                 }
-                
                 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
                 zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
-                
-                updateAllControls(); // Disable/enable controls
+                updateAllControls();
                 updateCursor();
+                draw();
             });
 
             const zoomWithButtons = (factor) => {
@@ -1031,12 +1474,9 @@
                 const rect = canvas.getBoundingClientRect();
                 const viewCenterX = rect.width / 2;
                 const viewCenterY = rect.height / 2;
-                
-                // Zoom from center of view
                 camera.x = viewCenterX - (viewCenterX - camera.x) * (newScale / camera.scale);
                 camera.y = viewCenterY - (viewCenterY - camera.y) * (newScale / camera.scale);
                 camera.scale = newScale;
-
                 clampCamera();
                 draw();
             };
@@ -1044,28 +1484,74 @@
             zoomInBtn.addEventListener('click', () => zoomWithButtons(1.2));
             zoomOutBtn.addEventListener('click', () => zoomWithButtons(1 / 1.2));
 
-            // ... (rest of existing listeners are unchanged)
-
+            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
+            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
+            
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                // --- MODIFIED --- Temporarily reset camera for download
                 const tempCamera = { ...camera };
+                const wasInPanZoom = panZoomModeActive;
+                
                 camera = { x: 0, y: 0, scale: 1 };
-                panZoomModeActive = false; // Ensure highlights are off
+                panZoomModeActive = false; 
                 panZoomToggleBtn.classList.remove('active');
                 zoomControls.classList.add('hidden');
-                deselectAll();
+                deselectAll(); 
+
                 setTimeout(() => {
                     const link = document.createElement('a');
                     link.download = `adhd-meme.png`;
                     link.href = canvas.toDataURL('image/png', 0.95);
                     link.click();
-                    // Restore camera state
+                    
                     camera = tempCamera;
+                    panZoomModeActive = wasInPanZoom; 
+                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom);
+                    zoomControls.classList.toggle('hidden', !wasInPanZoom);
+                    updateAllControls();
                     draw();
-                }, 50);
+                }, 100);
             });
-            // ... (the rest of the listeners are unchanged)
+
+            document.getElementById('mg-share').addEventListener('click', () => {
+                if (!img) return toast('Upload an image first');
+                const memeLink = '[replace this with the image from your downloads, you wonderful, hyper-active degen]';
+                const tweet = `Got distracted & made this!\n\nCheck out: ${memeLink} \n\nhttps://adhdegens.fun/ $ADHD`;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`, '_blank');
+            });
+            
+            document.querySelectorAll('.fieldset-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const fieldset = btn.closest('fieldset');
+                    if (fieldset) {
+                        fieldset.classList.toggle('minimized');
+                        const isMinimized = fieldset.classList.contains('minimized');
+                        btn.textContent = isMinimized ? '+' : '—';
+                        btn.setAttribute('aria-expanded', !isMinimized);
+                        btn.setAttribute('aria-label', isMinimized ? 'Maximize section' : 'Minimize section');
+                    }
+                });
+            });
+
+            canvas.addEventListener('mousedown', handleInteractionStart);
+            canvas.addEventListener('mousemove', handleInteractionMove);
+            window.addEventListener('mouseup', handleInteractionEnd);
+            canvas.addEventListener('mouseleave', () => {
+                if (interaction.active) handleInteractionEnd();
+                interaction.lastPoint = null;
+                if (brushMode !== 'none') draw();
+            });
+            canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
+            canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
+            window.addEventListener('touchend', handleInteractionEnd);
+            window.addEventListener('resize', fitCanvasToContainer);
+
+            document.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+                    if (!undoBtn.disabled) { e.preventDefault(); performUndo(); }
+                }
+            });
         }
 
         function resetApp() {
@@ -1074,13 +1560,10 @@
             eraserSize = 100;
             historyStack = [];
             fileInput.value = null;
-
-            // --- NEW --- Reset camera and pan/zoom state
             panZoomModeActive = false;
             camera = { x: 0, y: 0, scale: 1 };
             panZoomToggleBtn.classList.remove('active');
             zoomControls.classList.add('hidden');
-
             preview.classList.add('no-image');
             canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
