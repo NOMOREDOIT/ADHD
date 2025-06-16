@@ -242,7 +242,6 @@
         }
         .mg-icon-btn { width: 36px; height: 36px; padding: 0; display: inline-flex; justify-content: center; align-items: center; }
 
-        /* --- NEW: Style for PNG icons inside buttons --- */
         .mg-icon-btn img {
             width: 24px;
             height: 24px;
@@ -432,17 +431,17 @@
                                 <button class="mg-icon-btn" id="mg-rotate-icon" disabled title="Rotate 90°">↻</button>
                                 <button class="mg-icon-btn" id="mg-flip-icon" disabled title="Flip Horizontally">⇆</button>
                                 
-                                <!-- --- MODIFIED: Replaced SVGs with IMGs --- -->
+                                <!-- --- MODIFIED: Updated image paths --- -->
                                 <button class="mg-icon-btn" id="mg-erase-toggle" disabled title="Toggle Eraser Mode">
-                                    <img src="erase.png" alt="Erase">
+                                    <img src="./assets/maker/erase.png" alt="Erase">
                                 </button>
                                 
                                 <button class="mg-icon-btn" id="mg-unerase-toggle" disabled title="Toggle Unerase Mode">
-                                   <img src="unerase.png" alt="Un-erase">
+                                   <img src="./assets/maker/unerase.png" alt="Un-erase">
                                 </button>
 
                                 <button class="mg-icon-btn" id="mg-undo" disabled title="Undo (Cmd/Ctrl+Z)">
-                                    <img src="undo.png" alt="Undo">
+                                    <img src="./assets/maker/undo.png" alt="Undo">
                                 </button>
                             </div>
 
@@ -1025,7 +1024,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
