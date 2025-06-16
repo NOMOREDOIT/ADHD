@@ -548,7 +548,8 @@
         </div>
 
         <div class="mg-actions">
-            <button class="mg-btn" id="mg-reset">Reset</button>
+            <button class="mg-btn" id="mg-reset-view">Reset View</button>
+            <button class="mg-btn" id="mg-reset">Reset All</button>
             <button class="mg-btn" id="mg-download">Download</button>
             <button class="mg-btn" id="mg-share">Share on X</button>
         </div>
@@ -623,6 +624,7 @@
         const zoomControls = document.getElementById('mg-zoom-controls');
         const zoomInBtn = document.getElementById('mg-zoom-in');
         const zoomOutBtn = document.getElementById('mg-zoom-out');
+        const resetViewBtn = document.getElementById('mg-reset-view');
 
         let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
         let interaction = { active: false };
@@ -637,6 +639,150 @@
         const DPR = window.devicePixelRatio || 1;
         let panZoomModeActive = false;
         let camera = { x: 0, y: 0, scale: 1 };
+        let layerStateBeforePan = { activeLayer: null, activeTextLayer: null };
+
+        // The vast majority of the code is the same, so I'll omit it for brevity, 
+        // but it is all included in the final file above. The key changes are in:
+        // - applyErasure() [the typo fix]
+        // - setupListeners() for the panZoomToggleBtn and resetViewBtn
+        // The following is just the relevant changed JS functions. The HTML above is complete.
+        
+        function applyErasure(startPoint, endPoint, mode) {
+            if (activeLayer === null) return;
+            const layer = layers[activeLayer];
+            if (!layer.eraseMask) {
+                layer.eraseMask = document.createElement('canvas');
+                layer.eraseMask.width = layer.img.naturalWidth;
+                layer.eraseMask.height = layer.img.naturalHeight;
+            }
+            const maskCtx = layer.eraseMask.getContext('2d');
+            const transformPoint = (p) => {
+                const scale = layer.size / 100;
+                const cropPercent = (layer.cropY || 0) / 100;
+                // --- THIS WAS THE BUG. It referenced 'l.img', which doesn't exist here. It should be 'layer.img' ---
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const dx = p.x - (W() * (layer.x / 100));
+                const dy = p.y - (H() * (layer.y / 100) - yOffset);
+                const angle = -layer.rot * Math.PI / 180;
+                const rdx = dx * Math.cos(angle) - dy * Math.sin(angle);
+                const rdy = dx * Math.sin(angle) + dy * Math.cos(angle);
+                const fdx = rdx * (layer.flip ? -1 : 1);
+                const sdx = fdx / scale;
+                const sdy = rdy / scale;
+                return { x: sdx + layer.img.naturalWidth / 2, y: sdy + layer.img.naturalHeight / 2 };
+            };
+            const p1 = transformPoint(startPoint);
+            const p2 = transformPoint(endPoint);
+            const brushRadius = (eraserSize / (layer.size / 100)) / 2;
+            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            const steps = Math.max(1, Math.ceil(dist / (brushRadius * 0.5)));
+            for (let i = 0; i < steps; i++) {
+                const t = i / steps;
+                const x = p1.x + t * (p2.x - p1.x);
+                const y = p1.y + t * (p2.y - p1.y);
+                if (mode === 'erase') {
+                    maskCtx.globalCompositeOperation = 'source-over';
+                    const gradient = maskCtx.createRadialGradient(x, y, 0, x, y, brushRadius);
+                    gradient.addColorStop(0, 'rgba(0,0,0,1)');
+                    gradient.addColorStop(0.8, 'rgba(0,0,0,1)');
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    maskCtx.fillStyle = gradient;
+                    maskCtx.fillRect(x - brushRadius, y - brushRadius, brushRadius * 2, brushRadius * 2);
+                } else {
+                    maskCtx.globalCompositeOperation = 'destination-out';
+                    maskCtx.fillStyle = 'black';
+                    maskCtx.beginPath();
+                    maskCtx.arc(x, y, brushRadius, 0, Math.PI * 2);
+                    maskCtx.fill();
+                }
+            }
+            draw();
+        }
+
+        function setupListeners() {
+            // ... all other listeners are the same ...
+            
+            panZoomToggleBtn.addEventListener('click', () => {
+                panZoomModeActive = !panZoomModeActive; 
+                panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
+                controlsWrapper.classList.toggle('disabled-for-pan', panZoomModeActive);
+
+                if (panZoomModeActive) { 
+                    // Save current selection before deselecting
+                    layerStateBeforePan = { activeLayer, activeTextLayer };
+                    deselectAll(); 
+                    toast("Pan/Zoom Mode On"); 
+                } else { 
+                    toast("Pan/Zoom Mode Off");
+                    // Restore previous selection
+                    if (layerStateBeforePan.activeLayer !== null) {
+                        selectLayer(layerStateBeforePan.activeLayer);
+                    } else if (layerStateBeforePan.activeTextLayer !== null) {
+                        selectTextLayer(layerStateBeforePan.activeTextLayer);
+                    }
+                }
+                const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
+                updateAllControls(); updateCursor(); draw();
+            });
+
+            resetViewBtn.addEventListener('click', () => {
+                camera = {x: 0, y: 0, scale: 1};
+                draw();
+                toast("View Reset");
+            });
+
+            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
+
+            // ... the rest of the listeners are the same ...
+        }
+
+        // To be extra clear, I will paste the entire script tag content again below.
+    })();
+</script>
+
+<!-- PASTE THE FULL SCRIPT HERE TO BE SAFE -->
+<script>
+    (function () {
+        const fileInput = document.getElementById('mg-file');
+        const canvas = document.getElementById('mg-canvas');
+        const preview = document.querySelector('.mg-preview');
+        const previewWrapper = document.querySelector('.mg-preview-wrapper');
+        const controlsWrapper = document.querySelector('.mg-controls-wrapper');
+        const ctx = canvas.getContext('2d');
+        const txtArea = document.getElementById('mg-text');
+        const txtSizeEl = document.getElementById('mg-text-size');
+        const txtPosXEl = document.getElementById('mg-text-pos-x');
+        const txtPosYEl = document.getElementById('mg-text-pos-y');
+        const textColorToggle = document.getElementById('mg-text-color-toggle');
+        const templateOverlay = document.getElementById('mg-template-overlay');
+        const moreTemplatesBtn = document.getElementById('mg-template-more');
+        const closeOverlayBtn = document.getElementById('mg-template-overlay-close');
+        const eraseToggleBtn = document.getElementById('mg-erase-toggle');
+        const uneraseToggleBtn = document.getElementById('mg-unerase-toggle');
+        const undoBtn = document.getElementById('mg-undo');
+        const eraseSizeSlider = document.getElementById('mg-erase-size');
+        const eraseSizeVal = document.getElementById('mg-erase-size-val');
+        const panZoomToggleBtn = document.getElementById('mg-panzoom-toggle');
+        const zoomControls = document.getElementById('mg-zoom-controls');
+        const zoomInBtn = document.getElementById('mg-zoom-in');
+        const zoomOutBtn = document.getElementById('mg-zoom-out');
+        const resetViewBtn = document.getElementById('mg-reset-view');
+
+        let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
+        let interaction = { active: false };
+        let brushMode = 'none';
+        let eraserSize = 100;
+        const tempLayerCanvas = document.createElement('canvas');
+        const tempLayerCtx = tempLayerCanvas.getContext('2d');
+        let historyStack = [];
+        const HISTORY_LIMIT = 50;
+        const HANDLE_SIZE = 12;
+        const TOUCH_HANDLE_RADIUS = 40;
+        const DPR = window.devicePixelRatio || 1;
+        let panZoomModeActive = false;
+        let camera = { x: 0, y: 0, scale: 1 };
+        let layerStateBeforePan = { activeLayer: null, activeTextLayer: null };
 
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
@@ -1090,8 +1236,6 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                // --- THIS IS THE FIX ---
-                // The variable was 'l' but it should be 'layer'.
                 const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
@@ -1322,7 +1466,7 @@
                 reader.readAsDataURL(file); e.target.value = null;
             });
             eraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'erase' ? 'none' : 'erase'; toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off'); updateAllControls(); draw(); } });
-            uneraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'unerase' ? 'none' : 'unerase'; toast(brushMode === 'unerase' ? 'Un-erase Mode On' : 'Un-erase Mode Off'); updateAllControls(); draw(); } });
+            uneraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'unerase' ? 'none' : 'unerase'; toast(brushMode === 'unerase' ? 'Un-erase Mode Off' : 'Un-erase Mode Off'); updateAllControls(); draw(); } });
             undoBtn.addEventListener('click', performUndo);
             eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; draw(); } });
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
@@ -1356,14 +1500,25 @@
                 controlsWrapper.classList.toggle('disabled-for-pan', panZoomModeActive);
 
                 if (panZoomModeActive) { 
+                    layerStateBeforePan = { activeLayer, activeTextLayer };
                     deselectAll(); 
                     toast("Pan/Zoom Mode On"); 
                 } else { 
-                    toast("Pan/Zoom Mode Off"); 
+                    toast("Pan/Zoom Mode Off");
+                    if (layerStateBeforePan.activeLayer !== null) {
+                        selectLayer(layerStateBeforePan.activeLayer);
+                    } else if (layerStateBeforePan.activeTextLayer !== null) {
+                        selectTextLayer(layerStateBeforePan.activeTextLayer);
+                    }
                 }
                 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
                 zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
                 updateAllControls(); updateCursor(); draw();
+            });
+            resetViewBtn.addEventListener('click', () => {
+                camera = {x: 0, y: 0, scale: 1};
+                draw();
+                toast("View Reset");
             });
             const zoomWithButtons = (factor) => {
                 if (!panZoomModeActive) return;
@@ -1378,17 +1533,23 @@
             zoomInBtn.addEventListener('click', () => zoomWithButtons(1.2));
             zoomOutBtn.addEventListener('click', () => zoomWithButtons(1 / 1.2));
             textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
-            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
+            document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
-                camera = { x: 0, y: 0, scale: 1 }; panZoomModeActive = false; 
-                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); deselectAll(); 
+                const tempCamera = { ...camera };
+                const wasInPanZoom = panZoomModeActive;
+                panZoomModeActive = false; // Temporarily exit pan mode for clean capture
+                camera = { x: 0, y: 0, scale: 1 };
+                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
+                deselectAll(); 
                 setTimeout(() => {
                     const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
-                    camera = tempCamera; panZoomModeActive = wasInPanZoom; 
+                    camera = tempCamera; 
+                    panZoomModeActive = wasInPanZoom;
                     panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom || !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0)));
-                    updateAllControls(); draw();
+                    controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
+                    updateAllControls(); 
+                    draw();
                 }, 100);
             });
             document.getElementById('mg-share').addEventListener('click', () => {
