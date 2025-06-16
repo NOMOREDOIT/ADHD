@@ -579,13 +579,21 @@
             t.textContent = msg; t.style.opacity = 1; t.style.visibility = 'visible';
             setTimeout(() => { t.style.opacity = 0; t.style.visibility = 'hidden'; }, 2400);
         };
+        
+        // --- MODIFIED: Make canvas larger on mobile ---
         function fitCanvasToContainer() {
             if (!img) return;
             canvas.style.width = ''; canvas.style.height = '';
+
+            // Check if on mobile or desktop to adjust height
+            const isMobile = window.innerWidth < 900;
+            const heightMultiplier = isMobile ? 0.95 : 0.85;
+
             const containerWidth = previewWrapper.clientWidth;
-            const containerHeight = window.innerHeight * 0.85; 
+            const containerHeight = window.innerHeight * heightMultiplier; 
             const imgAspectRatio = img.naturalWidth / img.naturalHeight;
             const containerAspectRatio = containerWidth / containerHeight;
+            
             if (imgAspectRatio > containerAspectRatio) {
                 canvas.style.width = containerWidth + 'px';
                 canvas.style.height = 'auto';
@@ -594,6 +602,7 @@
                 canvas.style.width = 'auto';
             }
         }
+
         function updateCursor() {
             canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
         }
@@ -1009,7 +1018,6 @@
             selectLayer(layers.length - 1);
         }
         
-        // --- MODIFIED: The bug fix is here ---
         function applyErasure(startPoint, endPoint, mode) {
             if (activeLayer === null) return;
             const layer = layers[activeLayer];
@@ -1024,7 +1032,6 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                // THIS WAS THE BUG: `l` was used instead of `layer`
                 const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
