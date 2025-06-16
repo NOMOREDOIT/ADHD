@@ -226,7 +226,7 @@
         .mg-template-add svg, .mg-template-more svg { width: 36px; height: 36px; color: var(--ink); }
 
         /* ─── Main Action Buttons ─── */
-        .mg-actions { display: flex; justify-content: center; gap: .5rem; margin-top: .75rem; }
+        .mg-actions { display: flex; justify-content: center; gap: .5rem; margin-top: .75rem; flex-wrap: wrap;}
         .mg-btn, .mg-icon-btn {
             font-family: inherit; font-size: 18px;
             background: var(--light);
@@ -247,7 +247,7 @@
             height: 24px;
         }
 
-        .mg-icon-btn.active {
+        .mg-btn.active, .mg-icon-btn.active {
             background-color: var(--mid);
             box-shadow: none;
             transform: translate(2px, 2px);
@@ -296,10 +296,9 @@
         /* --- MOBILE LAYOUT ADJUSTMENTS --- */
         @media (max-width: 899px) {
             body {
-                padding: 10px; 
+                padding: 10px 0; 
             }
             #adhd-meme-generator {
-                /* --- MODIFIED: Remove internal side padding to maximize canvas width --- */
                 padding: 0.5rem 0; 
             }
             /* --- Reorder elements for mobile view using flexbox 'order' --- */
@@ -484,6 +483,10 @@
                     <canvas id="mg-canvas" width="800" height="600"></canvas>
                     <input type="file" id="mg-file" accept="image/*" style="display:none"/>
                 </div>
+                <!-- --- NEW: View control button --- -->
+                <div class="mg-actions" style="margin-top:0.5rem;">
+                    <button class="mg-btn" id="mg-view-toggle">Change View</button>
+                </div>
             </div>
         </div>
 
@@ -559,6 +562,12 @@
         const undoBtn = document.getElementById('mg-undo');
         const eraseSizeSlider = document.getElementById('mg-erase-size');
         const eraseSizeVal = document.getElementById('mg-erase-size-val');
+        
+        // --- NEW: View Mode elements and state ---
+        const viewToggleBtn = document.getElementById('mg-view-toggle');
+        let isViewMode = false;
+        let viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+        
         let img = null, layers = [], activeLayer = null, textLayers = [], activeTextLayer = null;
         let interaction = { active: false };
         let brushMode = 'none';
@@ -607,7 +616,11 @@
         }
 
         function updateCursor() {
-            canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
+            if (isViewMode) {
+                canvas.style.cursor = 'grab';
+            } else {
+                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
+            }
         }
         function updateAllControls() { updateImageControls(); updateTextControls(); }
         function updateImageControls() {
@@ -705,6 +718,7 @@
             return { layers: layerSnap, textLayers: textLayerSnap };
         }
         function pushStateToHistory() {
+            if (isViewMode) return; // Don't save view changes to history
             if (historyStack.length > HISTORY_LIMIT) {
                 historyStack.shift();
             }
@@ -800,8 +814,15 @@
             const cx = W() * (t.x / 100), cy = H() * (t.y / 100);
             return { x: cx - maxWidth / 2, y: cy - totalHeight / 2, width: maxWidth, height: totalHeight, cx, cy };
         }
+        
+        // --- MODIFIED: The main draw function now supports view transformations ---
         function draw() {
             ctx.clearRect(0, 0, W(), H());
+            
+            ctx.save();
+            ctx.translate(viewTransform.offsetX, viewTransform.offsetY);
+            ctx.scale(viewTransform.scale, viewTransform.scale);
+
             if (img) ctx.drawImage(img, 0, 0, W(), H());
             
             layers.forEach(l => {
@@ -872,47 +893,51 @@
                 });
             });
 
-            const highlightColor = '#00FF00';
-            if (activeLayer !== null && layers[activeLayer]) {
-                const l = layers[activeLayer];
-                const scale = l.size / 100;
-                const cropPercent = (l.cropY || 0) / 100;
-                const w = l.img.naturalWidth * scale;
-                const h = l.img.naturalHeight * (1 - cropPercent) * scale;
-                const x = W() * (l.x / 100);
-                const y = H() * (l.y / 100);
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                
-                ctx.save();
-                ctx.translate(x, y - yOffset);
-                ctx.rotate((l.rot * Math.PI) / 180);
-                ctx.strokeStyle = highlightColor; ctx.lineWidth = 2; ctx.strokeRect(-w/2, -h/2, w, h);
-                ctx.fillStyle = highlightColor;
-                const ho = HANDLE_SIZE / 2;
-                ctx.fillRect(-w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(w/2-ho, -h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(-w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.restore();
-            }
-            
-            if (activeTextLayer !== null && textLayers[activeTextLayer]) {
-                const t = textLayers[activeTextLayer];
-                if (t.text.trim()) {
-                    const bounds = getTextBounds(t);
-                    ctx.strokeStyle = highlightColor;
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-                    const ho = HANDLE_SIZE / 2;
+            // Don't draw selection highlights if in View Mode
+            if (!isViewMode) {
+                const highlightColor = '#00FF00';
+                if (activeLayer !== null && layers[activeLayer]) {
+                    const l = layers[activeLayer];
+                    const scale = l.size / 100;
+                    const cropPercent = (l.cropY || 0) / 100;
+                    const w = l.img.naturalWidth * scale;
+                    const h = l.img.naturalHeight * (1 - cropPercent) * scale;
+                    const x = W() * (l.x / 100);
+                    const y = H() * (l.y / 100);
+                    const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                    
+                    ctx.save();
+                    ctx.translate(x, y - yOffset);
+                    ctx.rotate((l.rot * Math.PI) / 180);
+                    ctx.strokeStyle = highlightColor; ctx.lineWidth = 2 / viewTransform.scale; ctx.strokeRect(-w/2, -h/2, w, h);
                     ctx.fillStyle = highlightColor;
-                    ctx.fillRect(bounds.x - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x + bounds.width - ho, bounds.y - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(bounds.x + bounds.width - ho, bounds.y + bounds.height - ho, HANDLE_SIZE, HANDLE_SIZE);
+                    const ho = (HANDLE_SIZE / 2) / viewTransform.scale;
+                    ctx.fillRect(-w/2-ho, -h/2-ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                    ctx.fillRect(w/2-ho, -h/2-ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                    ctx.fillRect(-w/2-ho, h/2-ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                    ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                    ctx.restore();
+                }
+                
+                if (activeTextLayer !== null && textLayers[activeTextLayer]) {
+                    const t = textLayers[activeTextLayer];
+                    if (t.text.trim()) {
+                        const bounds = getTextBounds(t);
+                        ctx.strokeStyle = highlightColor;
+                        ctx.lineWidth = 2 / viewTransform.scale;
+                        ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+                        const ho = (HANDLE_SIZE / 2) / viewTransform.scale;
+                        ctx.fillStyle = highlightColor;
+                        ctx.fillRect(bounds.x - ho, bounds.y - ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                        ctx.fillRect(bounds.x + bounds.width - ho, bounds.y - ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                        ctx.fillRect(bounds.x - ho, bounds.y + bounds.height - ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                        ctx.fillRect(bounds.x + bounds.width - ho, bounds.y + bounds.height - ho, HANDLE_SIZE / viewTransform.scale, HANDLE_SIZE / viewTransform.scale);
+                    }
                 }
             }
-            
+            ctx.restore(); // Restore from the view transform
+
             if (brushMode !== 'none' && activeLayer !== null && interaction.lastPoint) {
                 const point = interaction.lastPoint;
                 const isUnerase = brushMode === 'unerase';
@@ -1089,6 +1114,15 @@
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             return { x: (clientX - rect.left) / rect.width * W(), y: (clientY - rect.top) / rect.height * H() };
         }
+        
+        // --- NEW: Function to convert screen points to world (zoomed/panned) points ---
+        function getTransformedPoint(point) {
+            return {
+                x: (point.x - viewTransform.offsetX) / viewTransform.scale,
+                y: (point.y - viewTransform.offsetY) / viewTransform.scale
+            };
+        }
+
         function getHandleAtPoint(point, bounds, rotation = 0, radius = HANDLE_SIZE) {
             const cx = bounds.cx; const cy = bounds.cy;
             const handles = {
@@ -1105,11 +1139,32 @@
             return null;
         }
 
+        // --- MODIFIED: Split interaction logic between View Mode and Edit Mode ---
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
 
             const isTouchEvent = !!e.touches;
+            
+            if (isViewMode) {
+                e.preventDefault();
+                if (isTouchEvent && e.touches.length === 2) { // Pinch start
+                    const t1 = e.touches[0], t2 = e.touches[1];
+                    interaction = {
+                        active: true, type: 'pinchView',
+                        initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY),
+                        initialState: { ...viewTransform }
+                    };
+                } else { // Pan start
+                    canvas.style.cursor = 'grabbing';
+                    interaction = {
+                        active: true, type: 'panView',
+                        lastPoint: getCanvasPoint(e)
+                    };
+                }
+                return;
+            }
 
+            // --- Regular Edit Mode Logic ---
             if (isTouchEvent && e.touches.length === 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory();
@@ -1127,19 +1182,20 @@
             }
             
             e.preventDefault();
-            const point = getCanvasPoint(e);
-            
+            const canvasPoint = getCanvasPoint(e);
+            const worldPoint = getTransformedPoint(canvasPoint);
+
             if (brushMode === 'none' && (!interaction.active || interaction.type !== 'pinchLayer')) {
                  pushStateToHistory();
             }
 
             if (brushMode !== 'none' && activeLayer !== null) {
-                interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
-                applyErasure(point, point, interaction.mode);
+                interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: worldPoint };
+                applyErasure(worldPoint, worldPoint, interaction.mode);
                 return;
             }
 
-            interaction.startX = point.x; interaction.startY = point.y;
+            interaction.startX = worldPoint.x; interaction.startY = worldPoint.y;
             
             if (activeLayer !== null) {
                 const l = layers[activeLayer];
@@ -1150,14 +1206,14 @@
                     cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset
                 };
                 const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
-                const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
+                const handle = getHandleAtPoint(worldPoint, bounds, l.rot, resizeRadius);
                 
                 if (handle) {
-                    interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: worldPoint.x, startY: worldPoint.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
                 
-                interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: worldPoint.x, startY: worldPoint.y, initialState: JSON.parse(JSON.stringify(l)) };
                 return;
             }
             
@@ -1165,14 +1221,14 @@
                 const l = layers[i];
                 const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
-                const dx = point.x - W()*(l.x/100), dy = point.y - (H()*(l.y/100) - yOffset);
+                const dx = worldPoint.x - W()*(l.x/100), dy = worldPoint.y - (H()*(l.y/100) - yOffset);
                 const angle = -l.rot * Math.PI / 180;
                 const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
                 const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
                 const w = l.img.naturalWidth * scale, h = l.img.naturalHeight * (1 - cropPercent) * scale;
                 if (Math.abs(localX) < w/2 && Math.abs(localY) < h/2) {
                     selectLayer(i);
-                    interaction = { active: true, type: 'dragLayer', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    interaction = { active: true, type: 'dragLayer', index: i, startX: worldPoint.x, startY: worldPoint.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
             }
@@ -1180,23 +1236,63 @@
         }
         
         function handleInteractionMove(e) {
-            if (interaction.active) {
-                e.preventDefault();
-            } else {
-                interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); 
+            if (!interaction.active) {
+                interaction.lastPoint = getCanvasPoint(e); 
+                if (brushMode !== 'none') draw(); 
                 return;
             }
+            e.preventDefault();
+            
+            if(isViewMode){
+                if (interaction.type === 'pinchView' && e.touches && e.touches.length === 2) {
+                    const t1 = e.touches[0], t2 = e.touches[1];
+                    const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    let scaleDelta = currentDist / interaction.initialDist;
+                    let newScale = interaction.initialState.scale * scaleDelta;
+                    
+                    newScale = Math.min(Math.max(newScale, 0.25), 10); // Clamp scale
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    const midpoint = getMidpoint(t1, t2);
+                    const canvasMidpoint = {
+                        x: (midpoint.x - rect.left) / rect.width * W(),
+                        y: (midpoint.y - rect.top) / rect.height * H()
+                    };
 
+                    viewTransform.offsetX = canvasMidpoint.x - (canvasMidpoint.x - interaction.initialState.offsetX) * (newScale / interaction.initialState.scale);
+                    viewTransform.offsetY = canvasMidpoint.y - (canvasMidpoint.y - interaction.initialState.offsetY) * (newScale / interaction.initialState.scale);
+                    viewTransform.scale = newScale;
+
+                } else if (interaction.type === 'panView') {
+                    const currentPoint = getCanvasPoint(e);
+                    viewTransform.offsetX += currentPoint.x - interaction.lastPoint.x;
+                    viewTransform.offsetY += currentPoint.y - interaction.lastPoint.y;
+                    interaction.lastPoint = currentPoint;
+                }
+                draw();
+                return;
+            }
+            
+
+            // --- Regular Edit Mode Logic ---
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length === 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
                 const rect = canvas.getBoundingClientRect();
 
                 const currentMidpoint = getMidpoint(t1, t2);
-                const deltaX = currentMidpoint.x - interaction.initialMidpoint.x;
-                const deltaY = currentMidpoint.y - interaction.initialMidpoint.y;
-                l.x = interaction.initialState.x + (deltaX / rect.width) * 100;
-                l.y = interaction.initialState.y + (deltaY / rect.height) * 100;
+                const worldMidpoint = getTransformedPoint({
+                    x: (currentMidpoint.x - rect.left) / rect.width * W(),
+                    y: (currentMidpoint.y - rect.top) / rect.height * H()
+                });
+
+                const iStateWorldMidpoint = getTransformedPoint({
+                    x: (interaction.initialMidpoint.x - rect.left) / rect.width * W(),
+                    y: (interaction.initialMidpoint.y - rect.top) / rect.height * H()
+                });
+                
+                l.x = interaction.initialState.x + (worldMidpoint.x - iStateWorldMidpoint.x) / W() * 100;
+                l.y = interaction.initialState.y + (worldMidpoint.y - iStateWorldMidpoint.y) / H() * 100;
 
                 const currentDx = t2.clientX - t1.clientX, currentDy = t2.clientY - t1.clientY;
                 
@@ -1213,13 +1309,13 @@
                 return;
             }
 
-            const point = getCanvasPoint(e);
+            const worldPoint = getTransformedPoint(getCanvasPoint(e));
             
             if (interaction.type === 'brush') {
-                applyErasure(interaction.lastPoint, point, interaction.mode);
+                applyErasure(interaction.lastPoint, worldPoint, interaction.mode);
             } else {
-                const dx = point.x - interaction.startX;
-                const dy = point.y - interaction.startY;
+                const dx = worldPoint.x - interaction.startX;
+                const dy = worldPoint.y - interaction.startY;
                 const iState = interaction.initialState;
 
                 if (interaction.type === 'dragLayer') {
@@ -1235,7 +1331,7 @@
                     const cx = W() * (iState.x / 100);
                     const cy = H() * (iState.y / 100);
                     const initialDist = Math.hypot(interaction.startX - cx, interaction.startY - cy);
-                    const currentDist = Math.hypot(point.x - cx, point.y - cy);
+                    const currentDist = Math.hypot(worldPoint.x - cx, worldPoint.y - cy);
                     if (initialDist > 1) {
                         const newSize = iState.size * (currentDist / initialDist);
                         item.size = Math.max(5, newSize);
@@ -1245,12 +1341,15 @@
                 updateAllControls();
                 draw();
             }
-            interaction.lastPoint = point;
+            interaction.lastPoint = worldPoint;
         }
         
         function handleInteractionEnd() { 
-             if (interaction.active && interaction.type === 'brush') {
+             if (!isViewMode && interaction.active && interaction.type === 'brush') {
                 pushStateToHistory();
+            }
+             if (isViewMode && interaction.active) {
+                canvas.style.cursor = 'grab';
             }
             interaction.active = false;
         }
@@ -1303,6 +1402,23 @@
                 reader.readAsDataURL(file);
                 
                 e.target.value = null;
+            });
+
+            // --- NEW: View Toggle Button Listener ---
+            viewToggleBtn.addEventListener('click', () => {
+                isViewMode = !isViewMode;
+                viewToggleBtn.classList.toggle('active', isViewMode);
+
+                if (!isViewMode) {
+                    // Reset view transform when turning mode off
+                    viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+                    toast('Edit Mode');
+                } else {
+                    deselectAll(); // Deselect layers when entering view mode
+                    toast('View Mode');
+                }
+                updateCursor();
+                draw();
             });
 
             eraseToggleBtn.addEventListener('click', () => {
@@ -1393,6 +1509,7 @@
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
+                isViewMode = false; // Ensure we're not in view mode for final export
                 deselectAll();
                 setTimeout(() => {
                     const link = document.createElement('a');
@@ -1447,6 +1564,9 @@
             brushMode = 'none';
             eraserSize = 100;
             historyStack = [];
+            isViewMode = false;
+            viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+            viewToggleBtn.classList.remove('active');
             fileInput.value = null;
 
             preview.classList.add('no-image');
