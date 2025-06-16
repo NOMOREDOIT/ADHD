@@ -134,6 +134,12 @@
             background-color: var(--ink);
         }
         
+        .mg-controls-wrapper.disabled-for-pan {
+            opacity: 0.6;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
         .fieldset-toggle-btn {
             background: none;
             border: 1px solid var(--ink);
@@ -228,7 +234,7 @@
 
         /* ─── Main Action Buttons ─── */
         .mg-actions { display: flex; justify-content: center; gap: .5rem; margin-top: .75rem; flex-wrap: wrap;}
-        .mg-btn, .mg-icon-btn {
+        .mg-btn, .mg-icon-btn, .mg-canvas-btn {
             font-family: inherit; font-size: 18px;
             background: var(--light);
             border: 2px solid var(--ink);
@@ -237,11 +243,11 @@
             color: var(--ink); transition: .2s all;
             box-shadow: 2px 2px 0px var(--shadow);
         }
-        .mg-btn:hover, .mg-icon-btn:hover {
+        .mg-btn:hover, .mg-icon-btn:hover, .mg-canvas-btn:hover {
             transform: translate(2px, 2px);
             box-shadow: 0px 0px 0px var(--shadow);
         }
-        .mg-btn.active {
+        .mg-btn.active, .mg-canvas-btn.active {
             background-color: var(--mid);
             box-shadow: none;
             transform: translate(2px, 2px);
@@ -367,7 +373,6 @@
     
         .hidden { display: none !important; }
 
-        /* --- NEW --- Pan/Zoom button on the canvas */
         .mg-canvas-btn {
             position: absolute;
             bottom: 10px;
@@ -379,30 +384,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: var(--light);
-            border: 2px solid var(--ink);
-            cursor: pointer;
-            box-shadow: 2px 2px 0px var(--shadow);
-            transition: .2s all;
         }
         .mg-canvas-btn img {
             width: 24px;
             height: 24px;
         }
-        .mg-canvas-btn:hover {
-            transform: translate(2px, 2px);
-            box-shadow: 0px 0px 0px var(--shadow);
-        }
-        .mg-canvas-btn.active {
-            background-color: var(--mid);
-            box-shadow: none;
-            transform: translate(2px, 2px);
-        }
 
-        /* --- MODIFIED --- Desktop +/- controls to stack above new button */
         #mg-zoom-controls {
             position: absolute;
-            bottom: 60px; /* New position to avoid overlap */
+            bottom: 60px;
             right: 10px;
             z-index: 50;
             display: flex;
@@ -452,7 +442,6 @@
                             <button class="fieldset-toggle-btn" aria-label="Minimize section" aria-expanded="true">—</button>
                         </legend>
                         <div class="fieldset-content">
-                            <!-- Hint will be inserted here by JS -->
                             <div id="mg-layers" class="mg-layers"></div>
                             <h3>Add Layer</h3>
                             <div class="mg-template-container">
@@ -546,9 +535,8 @@
                     <canvas id="mg-canvas" width="800" height="600"></canvas>
                     <input type="file" id="mg-file" accept="image/*" style="display:none"/>
                     
-                    <!-- --- MODIFIED --- All on-canvas controls are now here -->
-                    <button class="mg-canvas-btn hidden" id="mg-panzoom-toggle">
-                        <img src="./assets/maker/zoom.png" alt="Pan/Zoom"> <!-- Placeholder for your icon -->
+                    <button class="mg-canvas-btn hidden" id="mg-panzoom-toggle" title="Pan/Zoom Mode">
+                        <img src="./assets/maker/zoom.png" alt="Pan/Zoom">
                     </button>
 
                     <div id="mg-zoom-controls" class="hidden">
@@ -616,6 +604,7 @@
         const canvas = document.getElementById('mg-canvas');
         const preview = document.querySelector('.mg-preview');
         const previewWrapper = document.querySelector('.mg-preview-wrapper');
+        const controlsWrapper = document.querySelector('.mg-controls-wrapper');
         const ctx = canvas.getContext('2d');
         const txtArea = document.getElementById('mg-text');
         const txtSizeEl = document.getElementById('mg-text-size');
@@ -1062,7 +1051,7 @@
                     resizeCanvasCSS(img.naturalWidth, img.naturalHeight);
                     preview.classList.remove('no-image');
                     document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.remove('disabled'));
-                    panZoomToggleBtn.classList.remove('hidden'); // --- MODIFIED --- Show the button
+                    panZoomToggleBtn.classList.remove('hidden');
                     fitCanvasToContainer();
                     historyStack = [];
                     camera = { x: 0, y: 0, scale: 1 };
@@ -1101,6 +1090,8 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
+                // --- THIS IS THE FIX ---
+                // The variable was 'l' but it should be 'layer'.
                 const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
@@ -1179,6 +1170,9 @@
                 }
                 return;
             }
+            
+            panZoomToggleBtn.classList.add('hidden');
+
             if (isTouchEvent && e.touches.length === 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory(false);
@@ -1292,6 +1286,9 @@
             interaction.lastPoint = point;
         }
         function handleInteractionEnd() { 
+             if (img) {
+                panZoomToggleBtn.classList.remove('hidden');
+             }
              if (panZoomModeActive) { interaction.active = false; updateCursor(); return; }
              if (interaction.active && interaction.type === 'brush') {
                 pushStateToHistory(true);
@@ -1354,8 +1351,16 @@
                 el.addEventListener('mousedown', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             });
             panZoomToggleBtn.addEventListener('click', () => {
-                panZoomModeActive = !panZoomModeActive; panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
-                if (panZoomModeActive) { deselectAll(); toast("Pan/Zoom Mode On"); } else { toast("Pan/Zoom Mode Off"); }
+                panZoomModeActive = !panZoomModeActive; 
+                panZoomToggleBtn.classList.toggle('active', panZoomModeActive);
+                controlsWrapper.classList.toggle('disabled-for-pan', panZoomModeActive);
+
+                if (panZoomModeActive) { 
+                    deselectAll(); 
+                    toast("Pan/Zoom Mode On"); 
+                } else { 
+                    toast("Pan/Zoom Mode Off"); 
+                }
                 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
                 zoomControls.classList.toggle('hidden', !panZoomModeActive || isTouchDevice);
                 updateAllControls(); updateCursor(); draw();
@@ -1417,7 +1422,8 @@
             brushMode = 'none'; eraserSize = 100; historyStack = []; fileInput.value = null;
             panZoomModeActive = false; camera = { x: 0, y: 0, scale: 1 };
             panZoomToggleBtn.classList.remove('active');
-            panZoomToggleBtn.classList.add('hidden'); // --- MODIFIED --- Hide the button on reset
+            panZoomToggleBtn.classList.add('hidden');
+            controlsWrapper.classList.remove('disabled-for-pan');
             zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
