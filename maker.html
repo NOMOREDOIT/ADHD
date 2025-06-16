@@ -296,15 +296,19 @@
         /* --- MOBILE LAYOUT ADJUSTMENTS --- */
         @media (max-width: 899px) {
             body {
-                /* --- MODIFIED: Remove side padding for full-width mobile view --- */
-                padding: 10px 0; 
+                padding: 10px; 
             }
             #adhd-meme-generator {
-                padding: 0.5rem; /* Reduce inner padding on mobile */
+                /* --- MODIFIED: Remove internal side padding to maximize canvas width --- */
+                padding: 0.5rem 0; 
             }
             /* --- Reorder elements for mobile view using flexbox 'order' --- */
             .mg-preview-wrapper {
                 order: -1; /* Make preview appear before controls */
+            }
+            /* Add back a little padding to the controls on mobile so they don't hit the edge */
+            .mg-controls-wrapper {
+                padding: 0 0.5rem;
             }
         }
 
