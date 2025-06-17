@@ -658,10 +658,25 @@
         }
         const W = () => canvas.width / DPR;
         const H = () => canvas.height / DPR;
-        const toast = (msg) => {
+        
+        let toastTimeoutId;
+        const hideToast = () => {
             const t = document.getElementById('mg-toast');
+            clearTimeout(toastTimeoutId);
+            toastTimeoutId = null;
+            t.style.opacity = 0;
+            t.style.visibility = 'hidden';
+        };
+        const toast = (msg, duration = 2400) => {
+            const t = document.getElementById('mg-toast');
+            clearTimeout(toastTimeoutId); // Clear any existing toast timer
             t.textContent = msg; t.style.opacity = 1; t.style.visibility = 'visible';
-            setTimeout(() => { t.style.opacity = 0; t.style.visibility = 'hidden'; }, 2400);
+            if (duration !== null) {
+                toastTimeoutId = setTimeout(() => { 
+                    t.style.opacity = 0; 
+                    t.style.visibility = 'hidden'; 
+                }, duration);
+            }
         };
         
         function fitCanvasToContainer() {
@@ -762,11 +777,13 @@
         }
         function selectTextLayer(i) {
             if (panZoomModeActive) return;
+            hideToast(); // Switched tool, hide persistent pop-up
             brushMode = 'none';
             activeTextLayer = i; activeLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
         }
         function deselectAll() {
+            hideToast(); // Deselected everything, hide persistent pop-up
             brushMode = 'none';
             activeLayer = null; activeTextLayer = null;
             refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
@@ -1182,8 +1199,6 @@
                 return;
             }
             
-            panZoomToggleBtn.classList.add('hidden');
-
             if (isTouchEvent && e.touches.length >= 2 && activeLayer !== null) {
                 e.preventDefault();
                 pushStateToHistory(false);
@@ -1297,9 +1312,6 @@
             interaction.lastPoint = point;
         }
         function handleInteractionEnd() { 
-             if (img) {
-                panZoomToggleBtn.classList.remove('hidden');
-             }
              if (panZoomModeActive) { interaction.active = false; updateCursor(); return; }
              if (interaction.active && interaction.type === 'brush') {
                 pushStateToHistory(true);
@@ -1332,8 +1344,28 @@
                 reader.onload = () => { const image = new Image(); image.onload = () => addImageLayer(image, reader.result); image.src = reader.result; };
                 reader.readAsDataURL(file); e.target.value = null;
             });
-            eraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'erase' ? 'none' : 'erase'; toast(brushMode === 'erase' ? 'Eraser Mode On' : 'Eraser Mode Off'); updateAllControls(); draw(); } });
-            uneraseToggleBtn.addEventListener('click', () => { if (activeLayer !== null) { brushMode = brushMode === 'unerase' ? 'none' : 'unerase'; toast(brushMode === 'unerase' ? 'Un-erase Mode Off' : 'Un-erase Mode Off'); updateAllControls(); draw(); } });
+            eraseToggleBtn.addEventListener('click', () => { 
+                if (activeLayer === null) return;
+                brushMode = brushMode === 'erase' ? 'none' : 'erase'; 
+                if (brushMode === 'erase') {
+                    toast('Erase Mode On', null);
+                } else {
+                    toast('Eraser Mode Off');
+                }
+                updateAllControls(); 
+                draw(); 
+            });
+            uneraseToggleBtn.addEventListener('click', () => { 
+                if (activeLayer === null) return;
+                brushMode = brushMode === 'unerase' ? 'none' : 'unerase'; 
+                if (brushMode === 'unerase') {
+                    toast('Un-erase mode On', null);
+                } else {
+                    toast('Un-erase mode Off');
+                }
+                updateAllControls(); 
+                draw(); 
+            });
             undoBtn.addEventListener('click', performUndo);
             eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; draw(); } });
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
@@ -1369,7 +1401,7 @@
                 if (panZoomModeActive) { 
                     layerStateBeforePan = { activeLayer, activeTextLayer, brushMode };
                     deselectAll(); 
-                    toast("Pan/Zoom Mode On"); 
+                    toast("Pan/Zoom Mode On", null); 
                 } else { 
                     toast("Pan/Zoom Mode Off");
                     brushMode = layerStateBeforePan.brushMode;
