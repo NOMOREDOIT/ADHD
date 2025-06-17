@@ -458,12 +458,12 @@
                                 </label>
                             </div>
                             <div class="mg-slider" style="margin-top: 0.5rem;">
-                                <span class="mg-slider-label">Fade</span>
+                                <span class="mg-slider-label">Opacity</span>
                                 <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
                                 <span id="mg-opacity-val">100</span>
                             </div>
                             <div class="mg-slider">
-                                <span class="mg-slider-label">Shade</span>
+                                <span class="mg-slider-label">Light</span>
                                 <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
                                 <span id="mg-light-val">0</span>
                             </div>
@@ -595,6 +595,19 @@
             <div class="mg-template" data-template="./assets/maker/30.png"><img src="./assets/maker/30.png" alt="Template 30"></div>
             <div class="mg-template" data-template="./assets/maker/31.png"><img src="./assets/maker/31.png" alt="Template 31"></div>
             <div class="mg-template" data-template="./assets/maker/32.png"><img src="./assets/maker/32.png" alt="Template 32"></div>
+            <div class="mg-template" data-template="./assets/maker/33.png"><img src="./assets/maker/33.png" alt="Template 33"></div>
+            <div class="mg-template" data-template="./assets/maker/34.png"><img src="./assets/maker/34.png" alt="Template 34"></div>
+            <div class="mg-template" data-template="./assets/maker/35.png"><img src="./assets/maker/35.png" alt="Template 35"></div>
+            <div class="mg-template" data-template="./assets/maker/36.png"><img src="./assets/maker/36.png" alt="Template 36"></div>
+            <div class="mg-template" data-template="./assets/maker/37.png"><img src="./assets/maker/37.png" alt="Template 37"></div>
+            <div class="mg-template" data-template="./assets/maker/38.png"><img src="./assets/maker/38.png" alt="Template 38"></div>
+            <div class="mg-template" data-template="./assets/maker/39.png"><img src="./assets/maker/39.png" alt="Template 39"></div>
+            <div class="mg-template" data-template="./assets/maker/40.png"><img src="./assets/maker/40.png" alt="Template 40"></div>
+            <div class="mg-template" data-template="./assets/maker/41.png"><img src="./assets/maker/41.png" alt="Template 41"></div>
+            <div class="mg-template" data-template="./assets/maker/42.png"><img src="./assets/maker/42.png" alt="Template 42"></div>
+            <div class="mg-template" data-template="./assets/maker/43.png"><img src="./assets/maker/43.png" alt="Template 43"></div>
+            <div class="mg-template" data-template="./assets/maker/44.png"><img src="./assets/maker/44.png" alt="Template 44"></div>
+            <div class="mg-template" data-template="./assets/maker/45.png"><img src="./assets/maker/45.png" alt="Template 45"></div>
         </div>
     </div>
 </div>
@@ -639,7 +652,7 @@
         const DPR = window.devicePixelRatio || 1;
         let panZoomModeActive = false;
         let camera = { x: 0, y: 0, scale: 1 };
-        let layerStateBeforePan = { activeLayer: null, activeTextLayer: null };
+        let layerStateBeforePan = { activeLayer: null, activeTextLayer: null, brushMode: 'none' };
 
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
@@ -1357,11 +1370,12 @@
                 controlsWrapper.classList.toggle('disabled-for-pan', panZoomModeActive);
 
                 if (panZoomModeActive) { 
-                    layerStateBeforePan = { activeLayer, activeTextLayer };
+                    layerStateBeforePan = { activeLayer, activeTextLayer, brushMode };
                     deselectAll(); 
                     toast("Pan/Zoom Mode On"); 
                 } else { 
                     toast("Pan/Zoom Mode Off");
+                    brushMode = layerStateBeforePan.brushMode;
                     if (layerStateBeforePan.activeLayer !== null) {
                         selectLayer(layerStateBeforePan.activeLayer);
                     } else if (layerStateBeforePan.activeTextLayer !== null) {
@@ -1405,6 +1419,7 @@
                     controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
                     updateAllControls(); 
                     if(wasInPanZoom) {
+                        brushMode = layerStateBeforePan.brushMode;
                         if (layerStateBeforePan.activeLayer !== null) {
                             selectLayer(layerStateBeforePan.activeLayer);
                         } else if (layerStateBeforePan.activeTextLayer !== null) {
