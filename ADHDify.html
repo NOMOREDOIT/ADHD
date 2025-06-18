@@ -408,7 +408,7 @@ ultraRunBtn.addEventListener('click', async () => {
   if (!dets.length) {
     info.textContent = 'ULTRA detecting (tier 3)…';
     const loose = await faceapi
-      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .01 }))
+      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 }))
       .withFaceLandmarks(true);
     if (loose.length) {
       loose.sort((a, b) => b.detection.score - a.detection.score);
