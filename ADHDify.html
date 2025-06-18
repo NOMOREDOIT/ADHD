@@ -247,6 +247,9 @@ function updateUIState() {
     deleteBtn.disabled = !selectedHat;
     dlBtn.disabled = !hasImage || (!hasHats && !hasDistortion);
 
+    // Reset color for standard messages
+    info.style.color = '';
+
     if (selectedHat) {
         info.textContent = 'Drag to move, resize corners, scroll to rotate, or click Delete.';
     } else if (hasHats || hasDistortion) {
@@ -284,6 +287,7 @@ pick.addEventListener('change', () => {
         img.src = e.target.result; // This triggers the 'load' event handler below
         img.hidden = false;
         layer.hidden = true;
+        info.style.color = ''; // Reset color on new image load
         info.textContent = 'Loading image...'; // Give user feedback
     };
     r.readAsDataURL(f);
@@ -331,26 +335,46 @@ wrap.addEventListener('click', (e) => {
 runBtn.addEventListener('click',async()=>{
   runBtn.disabled=true;
   ultraRunBtn.disabled=true;
+  info.style.color = ''; // Reset color from any previous error
   info.textContent='detecting…';
   await Promise.all([img.decode(),hatBase.decode()]);
 
-  let dets=await faceapi.detectAllFaces(
-    img,
-    new faceapi.TinyFaceDetectorOptions({scoreThreshold:.4})
+  // --- NEW: 3-Tier Detection Cascade ---
+  // Tier 1: High confidence, multiple faces
+  let dets = await faceapi.detectAllFaces(
+    img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .45 })
   );
-  if(!dets.length){
-    const loose=await faceapi.detectAllFaces(
-      img,
-      new faceapi.TinyFaceDetectorOptions({scoreThreshold:.05})
+  
+  // Tier 2: Medium confidence, multiple faces
+  if (!dets.length) {
+    info.textContent = 'detecting (tier 2)…';
+    dets = await faceapi.detectAllFaces(
+      img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .25 })
     );
-    if(loose.length){ loose.sort((a,b)=>b.score-a.score); dets=[loose[0]]; }
+  }
+
+  // Tier 3: Low confidence, best single face
+  if (!dets.length) {
+    info.textContent = 'detecting (tier 3)…';
+    const loose = await faceapi.detectAllFaces(
+      img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 })
+    );
+    if (loose.length) {
+      loose.sort((a,b) => b.score - a.score);
+      dets = [loose[0]];
+    }
   }
 
   clearOverlays();
 
+  // --- NEW: Handle failure with red message ---
   if(!dets.length){
-    info.textContent='no faces found';
-    updateUIState();
+    info.style.color = '#cc4444'; // A distinct red, from delete button
+    info.textContent = 'Could not find a face. Please try a clearer image!';
+    // Manually re-enable buttons, as updateUIState would overwrite our message
+    const hasImage = !img.hidden;
+    runBtn.disabled = !hasImage;
+    ultraRunBtn.disabled = !hasImage;
     return;
   }
 
@@ -362,18 +386,29 @@ runBtn.addEventListener('click',async()=>{
 
 ultraRunBtn.addEventListener('click', async () => {
   runBtn.disabled = ultraRunBtn.disabled = true;
+  info.style.color = ''; // Reset color from any previous error
   info.textContent = 'ULTRA detecting…';
   await Promise.all([img.decode(), hatBase.decode()]);
 
-  // 1) try normal ULTRA threshold
+  // --- NEW: 3-Tier Detection Cascade for ULTRA ---
+  // Tier 1: High confidence
   let dets = await faceapi
-    .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .30 }))
+    .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .4 }))
     .withFaceLandmarks(true);
 
-  // 2) fallback to loose threshold if nothing found
+  // Tier 2: Medium confidence
   if (!dets.length) {
+    info.textContent = 'ULTRA detecting (tier 2)…';
+    dets = await faceapi
+      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .2 }))
+      .withFaceLandmarks(true);
+  }
+
+  // Tier 3: Low confidence, best-of
+  if (!dets.length) {
+    info.textContent = 'ULTRA detecting (tier 3)…';
     const loose = await faceapi
-      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .15 }))
+      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .01 }))
       .withFaceLandmarks(true);
     if (loose.length) {
       loose.sort((a, b) => b.detection.score - a.detection.score);
@@ -383,9 +418,14 @@ ultraRunBtn.addEventListener('click', async () => {
 
   clearOverlays();
 
+  // --- NEW: Handle failure with red message ---
   if (!dets.length) {
-    info.textContent = 'no faces found for ULTRA mode';
-    updateUIState();
+    info.style.color = '#cc4444'; // A distinct red
+    info.textContent = 'Could not find a face for ULTRA mode. Try a clearer image!';
+    // Manually re-enable buttons
+    const hasImage = !img.hidden;
+    runBtn.disabled = !hasImage;
+    ultraRunBtn.disabled = !hasImage;
     return;
   }
 
