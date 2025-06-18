@@ -272,25 +272,54 @@ function selectHat(hatElement) {
     updateUIState();
 }
 
+const MAX_DIMENSION = 1920;
+
 // --- EVENT LISTENERS ---
-pick.addEventListener('change',()=>{
-  const f=pick.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=e=>{
-    clearOverlays();
-    img.src=e.target.result;
-    img.hidden=false; layer.hidden=true;
-    // We call updateUIState in the img.onload event handler
-  };
-  r.readAsDataURL(f);
+pick.addEventListener('change', () => {
+    const f = pick.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = e => {
+        clearOverlays();
+        img.src = e.target.result; // This triggers the 'load' event handler below
+        img.hidden = false;
+        layer.hidden = true;
+        info.textContent = 'Loading image...'; // Give user feedback
+    };
+    r.readAsDataURL(f);
 });
 
-img.addEventListener('load',()=>{
-  wrap.style.width=img.naturalWidth+'px';
-  wrap.style.height=img.naturalHeight+'px';
-  layer.width=img.naturalWidth;
-  layer.height=img.naturalHeight;
-  updateUIState();
+img.addEventListener('load', () => {
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+
+    if (w <= MAX_DIMENSION && h <= MAX_DIMENSION) {
+        wrap.style.width = w + 'px';
+        wrap.style.height = h + 'px';
+        layer.width = w;
+        layer.height = h;
+        updateUIState();
+        return;
+    }
+
+    info.textContent = `Resizing image to fit ${MAX_DIMENSION}px...`;
+
+    const ratio = w / h;
+    if (w > h) {
+        w = MAX_DIMENSION;
+        h = Math.round(w / ratio);
+    } else {
+        h = MAX_DIMENSION;
+        w = Math.round(h * ratio);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    img.src = canvas.toDataURL('image/jpeg', 0.92);
 });
 
 wrap.addEventListener('click', (e) => {
