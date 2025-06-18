@@ -267,7 +267,7 @@
 
         /* ─── Layer Thumbnails ─── */
         #mg-layers-hint {
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             color: var(--shadow);
             margin-bottom: 0.3rem;
             text-align: left;
@@ -458,12 +458,12 @@
                                 </label>
                             </div>
                             <div class="mg-slider" style="margin-top: 0.5rem;">
-                                <span class="mg-slider-label">Opacity</span>
+                                <span class="mg-slider-label">Fade</span>
                                 <input type="range" id="mg-opacity" min="0" max="100" value="100" disabled/>
                                 <span id="mg-opacity-val">100</span>
                             </div>
                             <div class="mg-slider">
-                                <span class="mg-slider-label">Light</span>
+                                <span class="mg-slider-label">Shade</span>
                                 <input type="range" id="mg-light" min="0" max="100" value="0" disabled/>
                                 <span id="mg-light-val">0</span>
                             </div>
@@ -669,7 +669,7 @@
         };
         const toast = (msg, duration = 2400) => {
             const t = document.getElementById('mg-toast');
-            clearTimeout(toastTimeoutId); // Clear any existing toast timer
+            clearTimeout(toastTimeoutId);
             t.textContent = msg; t.style.opacity = 1; t.style.visibility = 'visible';
             if (duration !== null) {
                 toastTimeoutId = setTimeout(() => { 
@@ -838,7 +838,7 @@
             if (existingHint) {
                 existingHint.remove();
             }
-            if (layers.length > 1) {
+            if (layers.length >= 1) { // MODIFIED: Changed from > 1 to >= 1
                 const hintEl = document.createElement('div');
                 hintEl.id = 'mg-layers-hint';
                 hintEl.textContent = 'Click to choose layer';
@@ -1184,12 +1184,12 @@
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
             const isTouchEvent = !!e.touches;
+
             if (panZoomModeActive) {
                 e.preventDefault();
                 if (isTouchEvent && e.touches.length >= 2) {
                     const t1 = e.touches[0], t2 = e.touches[1];
-                    const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
-                    interaction = { active: true, type: 'zoomCamera', initialDist: Math.hypot(dx, dy), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(camera)) };
+                    interaction = { active: true, type: 'zoomCamera', initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(camera)) };
                 } else {
                     const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
                     const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
@@ -1199,55 +1199,73 @@
                 return;
             }
             
-            if (isTouchEvent && e.touches.length >= 2 && activeLayer !== null) {
+            if (isTouchEvent && e.touches.length >= 2) {
                 e.preventDefault();
                 pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
-                const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
-                interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
-                return;
+                if (activeLayer !== null) {
+                    panZoomToggleBtn.classList.add('hidden');
+                    const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
+                    interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
+                    return;
+                } else if (activeTextLayer !== null) {
+                    panZoomToggleBtn.classList.add('hidden');
+                    interaction = { active: true, type: 'pinchText', index: activeTextLayer, initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), initialState: JSON.parse(JSON.stringify(textLayers[activeTextLayer])) };
+                    return;
+                }
             }
+
             e.preventDefault();
             const point = getCanvasPoint(e);
-            if (brushMode === 'none') {
-                 pushStateToHistory(false);
-            }
+            
             if (brushMode !== 'none' && activeLayer !== null) {
+                panZoomToggleBtn.classList.add('hidden');
                 interaction = { active: true, type: 'brush', mode: brushMode, lastPoint: point };
                 applyErasure(point, point, interaction.mode);
                 return;
             }
-            interaction.startX = point.x; interaction.startY = point.y;
-            if (activeLayer !== null) {
+            
+            pushStateToHistory(false);
+            const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
+
+            if (activeTextLayer !== null) {
+                const t = textLayers[activeTextLayer];
+                if (t.text.trim()) {
+                    const bounds = getTextBounds(t);
+                    const handle = getHandleAtPoint(point, bounds, 0, resizeRadius);
+                    if (handle) {
+                        panZoomToggleBtn.classList.add('hidden');
+                        interaction = { active: true, type: 'resizeText', index: activeTextLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
+                        return;
+                    }
+                    if (point.x > bounds.x && point.x < bounds.x + bounds.width && point.y > bounds.y && point.y < bounds.y + bounds.height) {
+                        panZoomToggleBtn.classList.add('hidden');
+                        interaction = { active: true, type: 'dragText', index: activeTextLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
+                        return;
+                    }
+                }
+            } else if (activeLayer !== null) {
                 const l = layers[activeLayer];
                 const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const bounds = { width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset };
-                const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
                 const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
                 if (handle) {
+                    panZoomToggleBtn.classList.add('hidden');
                     interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
-                interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
-                return;
-            }
-            for (let i = layers.length - 1; i >= 0; i--) {
-                const l = layers[i];
-                const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = point.x - W()*(l.x/100), dy = point.y - (H()*(l.y/100) - yOffset);
                 const angle = -l.rot * Math.PI / 180;
                 const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
                 const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
                 const w = l.img.naturalWidth * scale, h = l.img.naturalHeight * (1 - cropPercent) * scale;
                 if (Math.abs(localX) < w/2 && Math.abs(localY) < h/2) {
-                    selectLayer(i);
-                    interaction = { active: true, type: 'dragLayer', index: i, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    panZoomToggleBtn.classList.add('hidden');
+                    interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
                     return;
                 }
             }
-            deselectAll();
         }
         function handleInteractionMove(e) {
             const isTouchEvent = !!e.touches;
@@ -1273,6 +1291,7 @@
                 return;
             }
             if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return; }
+            
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length >= 2) {
                 const l = layers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
@@ -1286,7 +1305,18 @@
                 const currentDist = Math.hypot(currentDx, currentDy);
                 if (interaction.initialDist > 1) { l.size = interaction.initialState.size * (currentDist / interaction.initialDist); }
                 updateAllControls(); draw(); return;
+            } else if (interaction.type === 'pinchText' && e.touches && e.touches.length >= 2) {
+                const t = textLayers[interaction.index];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                if (interaction.initialDist > 1) { 
+                    t.size = Math.max(5, interaction.initialState.size * (currentDist / interaction.initialDist));
+                }
+                updateAllControls(); 
+                draw(); 
+                return;
             }
+
             const point = getCanvasPoint(e);
             if (interaction.type === 'brush') {
                 applyErasure(interaction.lastPoint, point, interaction.mode);
@@ -1313,6 +1343,11 @@
         }
         function handleInteractionEnd() { 
              if (panZoomModeActive) { interaction.active = false; updateCursor(); return; }
+             
+             if (img && !panZoomModeActive) {
+                panZoomToggleBtn.classList.remove('hidden');
+             }
+
              if (interaction.active && interaction.type === 'brush') {
                 pushStateToHistory(true);
             }
