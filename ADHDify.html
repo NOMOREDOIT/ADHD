@@ -21,8 +21,7 @@
   }
 
   /* ─── layout ─── */
-  html,body{height:100%;margin:0}
-  html{zoom:80%}
+  html{height:100%; zoom:80%;}
   body{
     font-family:'VT323',monospace;
     background:var(--bg) url('./assets/wallpaper.png') repeat fixed;
@@ -31,11 +30,18 @@
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10+ */
     user-select: none; /* Standard syntax */
+    margin: 0;
+    min-height: 100vh; /* FIX: Prevents body from being too short */
+    box-sizing: border-box;
   }
   h2{margin:0;font-size:32px;letter-spacing:1px;text-shadow:1px 1px var(--light)}
 
   /* ─── window frame ─── */
-  .window{background:var(--light);border:2px solid var(--ink);box-shadow:0 0 0 1px var(--shadow);display:inline-block}
+  .window{
+    background:var(--light);border:2px solid var(--ink);
+    box-shadow:0 0 0 1px var(--shadow);display:inline-block;
+    flex-shrink: 0; /* FIX: Prevents window from stretching vertically */
+  }
   .titlebar{height:24px;background:var(--mid);display:flex;align-items:center;justify-content:space-between;padding:0 6px;border-bottom:2px solid var(--ink);font-size:19px}
   .controls{display:flex;gap:3px}
   .btn-square{width:14px;height:14px;background:var(--light);border:1px solid var(--ink)}
@@ -133,7 +139,23 @@
 
   /* status text */
   #status{margin-top:12px;color:var(--shadow);font-size:18px}
-  #downloadOptions { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;}
+  #downloadOptions { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 16px;}
+
+  /* ─── Thematic Switch ─── */
+  .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--mid); transition: .3s;
+      border: 2px solid var(--ink);
+  }
+  .slider:before {
+      position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background-color: var(--light); border: 1px solid var(--ink);
+      transition: .3s;
+  }
+  input:checked + .slider { background-color: #55aa55; }
+  input:checked + .slider:before { transform: translateX(20px); }
 
 
   @media (max-width: 768px) {
@@ -165,12 +187,21 @@
     .button-grid { display: flex; flex-wrap: wrap; justify-content: center; }
     .content button, .content input[type=file] {
       flex-grow: 1; /* allow buttons to grow and fill space */
-      font-size: 14px; /* smaller font for more compact buttons */
+      font-size: 15px; /* smaller font for more compact buttons */
+      padding-top: 10px; /* Increase tap area */
+      padding-bottom: 10px; /* Increase tap area */
     }
       
     #wrap {
       /* ensure the image container doesn't overflow its parent */
       max-width: 100%; 
+      height: auto; /* ensure height scales correctly */
+    }
+    
+    /* FIX: Make status font smaller on mobile */
+    #status {
+        font-size: 14px;
+        margin-top: 8px;
     }
   }
   </style>
@@ -214,8 +245,11 @@
         </button>
       </div>
       <div id="downloadOptions">
-        <input type="checkbox" id="includeOffCanvas" checked>
-        <label for="includeOffCanvas">Include off-screen content on download</label>
+        <label for="includeOffCanvas">Include off-screen props</label>
+        <label class="switch">
+          <input type="checkbox" id="includeOffCanvas">
+          <span class="slider"></span>
+        </label>
       </div>
       <p id="status">loading models…</p>
       <div id="wrap">
@@ -225,7 +259,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
   const MODEL_URL='./model/';
   const pick=document.getElementById('pick');
   const runBtn=document.getElementById('run');
@@ -315,7 +349,6 @@
       if (selectedHat) {
           selectedHat.classList.add('selected');
       }
-      // Enable/disable global controls based on selection
       interact(wrap).draggable(!!selectedHat);
       interact(wrap).gesturable(!!selectedHat);
       updateUIState();
@@ -353,8 +386,10 @@
           img.src = canvas.toDataURL('image/jpeg', 0.92);
           return; 
       }
+      
       wrap.style.width = img.naturalWidth + 'px';
       wrap.style.height = img.naturalHeight + 'px';
+
       layer.width = img.naturalWidth;
       layer.height = img.naturalHeight;
       updateUIState();
@@ -434,62 +469,118 @@
     if (!hasHats && !hasDistortion) return;
 
     const baseImage = hasDistortion ? layer : img;
-    let outWidth = img.naturalWidth;
-    let outHeight = img.naturalHeight;
-    let offsetX = 0;
-    let offsetY = 0;
-
+    const out = document.createElement('canvas');
+    const ctx = out.getContext('2d');
+    
     if (includeOffCanvasCheck.checked && hasHats) {
-        let minX = 0, minY = 0, maxX = outWidth, maxY = outHeight;
+        let minX = 0, minY = 0, maxX = img.naturalWidth, maxY = img.naturalHeight;
 
         hats.forEach(h => {
-            const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
-            const rad = rot * Math.PI / 180;
-            const cos = Math.cos(rad), sin = Math.sin(rad);
-            const w_scaled = w * scale / 2, h_scaled = ht * scale / 2;
-
-            const corners = [
-                { x: -w_scaled, y: -h_scaled }, { x: w_scaled, y: -h_scaled },
-                { x: w_scaled, y: h_scaled }, { x: -w_scaled, y: h_scaled }
-            ];
-
+            const data = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+            const rad = data.rot * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+            const w_scaled = data.w * data.scale / 2, h_scaled = data.h * data.scale / 2;
+            const cx = data.x + data.w / 2, cy = data.y + data.h / 2;
+            const corners = [ { x: -w_scaled, y: -h_scaled }, { x: w_scaled, y: -h_scaled }, { x: w_scaled, y: h_scaled }, { x: -w_scaled, y: h_scaled } ];
             corners.forEach(corner => {
-                const rotatedX = corner.x * cos - corner.y * sin + (x + w / 2);
-                const rotatedY = corner.x * sin + corner.y * cos + (y + ht / 2);
-                minX = Math.min(minX, rotatedX);
-                minY = Math.min(minY, rotatedY);
-                maxX = Math.max(maxX, rotatedX);
-                maxY = Math.max(maxY, rotatedY);
+                const rotX = corner.x * cos - corner.y * sin + cx, rotY = corner.x * sin + corner.y * cos + cy;
+                minX = Math.min(minX, rotX); minY = Math.min(minY, rotY);
+                maxX = Math.max(maxX, rotX); maxY = Math.max(maxY, rotY);
             });
         });
 
-        outWidth = maxX - minX;
-        outHeight = maxY - minY;
-        offsetX = -minX;
-        offsetY = -minY;
-    }
+        minX = Math.min(minX, 0); minY = Math.min(minY, 0);
+        maxX = Math.max(maxX, img.naturalWidth); maxY = Math.max(maxY, img.naturalHeight);
 
-    const out = document.createElement('canvas');
-    out.width = outWidth;
-    out.height = outHeight;
-    const ctx = out.getContext('2d');
+        const contentW = maxX - minX, contentH = maxY - minY;
+        
+        const BASE_WIDTH = 1000;
+        const scaleFactor = Math.max(1, Math.sqrt(contentW / BASE_WIDTH));
 
-    if (includeOffCanvasCheck.checked) {
-        ctx.fillStyle = '#fff';
+        const PADDING = Math.round(20 * scaleFactor);
+        const BORDER = Math.round(2 * scaleFactor);
+        const SHADOW = Math.ceil(1 * scaleFactor);
+        const TITLEBAR_H = Math.round(24 * scaleFactor);
+
+        const frameW = PADDING * 2 + BORDER * 2 + SHADOW;
+        const frameH = PADDING * 2 + BORDER * 2 + SHADOW + TITLEBAR_H;
+
+        out.width = contentW + frameW; out.height = contentH + frameH;
+        
+        const offsetX = -minX + PADDING + BORDER;
+        const offsetY = -minY + PADDING + BORDER + TITLEBAR_H + BORDER;
+        
+        ctx.fillStyle = '#7a7a7a';
+        ctx.fillRect(SHADOW, SHADOW, out.width - SHADOW, out.height - SHADOW);
+        ctx.fillStyle = '#2b2b2b';
         ctx.fillRect(0, 0, out.width, out.height);
-    }
-    
-    ctx.drawImage(baseImage, offsetX, offsetY);
+        ctx.fillStyle = '#faf9f5';
+        ctx.fillRect(BORDER, BORDER, out.width - BORDER * 2, out.height - BORDER * 2);
+        ctx.fillStyle = '#c2c2c2';
+        ctx.fillRect(BORDER, BORDER, out.width - BORDER * 2, TITLEBAR_H);
+        ctx.fillStyle = '#2b2b2b';
+        ctx.fillRect(BORDER, BORDER + TITLEBAR_H, out.width - BORDER * 2, BORDER);
+        
+        const titleFontSize = Math.round(19 * scaleFactor);
+        ctx.font = `${titleFontSize}px "VT323", monospace`; ctx.fillStyle = '#2b2b2b'; ctx.textBaseline = 'middle';
+        ctx.fillText('ADHD on Solana', BORDER + Math.round(6 * scaleFactor), BORDER + TITLEBAR_H / 2 + 1);
 
-    hats.forEach(h => {
-        const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
-        ctx.save();
-        ctx.translate(x + w / 2 + offsetX, y + ht / 2 + offsetY);
-        ctx.rotate(rot * Math.PI / 180);
-        ctx.scale(scale, scale);
-        ctx.drawImage(hatBase, -w / 2, -ht / 2, w, ht);
-        ctx.restore();
-    });
+        const btnSize = Math.round(14 * scaleFactor);
+        const btnMargin = Math.round(6 * scaleFactor);
+        const btnSpacing = Math.round(3 * scaleFactor);
+        const btnY = BORDER + (TITLEBAR_H - btnSize) / 2;
+        const redBtnX = out.width - BORDER - btnMargin - btnSize;
+        const greenBtnX = redBtnX - btnSpacing - btnSize;
+
+        ctx.strokeStyle = '#2b2b2b';
+        ctx.lineWidth = Math.ceil(1 * scaleFactor);
+        const lineOffset = ctx.lineWidth / 2;
+
+        ctx.fillStyle = '#55aa55';
+        ctx.fillRect(greenBtnX, btnY, btnSize, btnSize);
+        ctx.strokeRect(greenBtnX - lineOffset, btnY - lineOffset, btnSize + (lineOffset*2), btnSize + (lineOffset*2));
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(
+          greenBtnX + Math.round(3 * scaleFactor), 
+          btnY + btnSize - Math.round(5 * scaleFactor), // <-- FIX IS HERE
+          btnSize - Math.round(6 * scaleFactor), 
+          Math.max(1, Math.round(2 * scaleFactor))
+        );
+
+        ctx.fillStyle = '#cc4444';
+        ctx.fillRect(redBtnX, btnY, btnSize, btnSize);
+        ctx.strokeRect(redBtnX - lineOffset, btnY - lineOffset, btnSize + (lineOffset*2), btnSize + (lineOffset*2));
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = Math.max(1, Math.round(2 * scaleFactor));
+        const xPad = Math.round(3 * scaleFactor);
+        ctx.beginPath();
+        ctx.moveTo(redBtnX + xPad, btnY + xPad);
+        ctx.lineTo(redBtnX + btnSize - xPad, btnY + btnSize - xPad);
+        ctx.moveTo(redBtnX + btnSize - xPad, btnY + xPad);
+        ctx.lineTo(redBtnX + xPad, btnY + btnSize - xPad);
+        ctx.stroke();
+
+        ctx.drawImage(baseImage, offsetX, offsetY);
+        hats.forEach(h => {
+            const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+            ctx.save();
+            ctx.translate(x + w / 2 + offsetX, y + ht / 2 + offsetY);
+            ctx.rotate(rot * Math.PI / 180); ctx.scale(scale, scale);
+            ctx.drawImage(hatBase, -w / 2, -ht / 2, w, ht);
+            ctx.restore();
+        });
+
+    } else {
+        out.width = img.naturalWidth; out.height = img.naturalHeight;
+        ctx.drawImage(baseImage, 0, 0);
+        hats.forEach(h => {
+            const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+            ctx.save();
+            ctx.translate(x + w / 2, y + ht / 2);
+            ctx.rotate(rot * Math.PI / 180); ctx.scale(scale, scale);
+            ctx.drawImage(hatBase, -w / 2, -ht / 2, w, ht);
+            ctx.restore();
+        });
+    }
 
     const link = document.createElement('a');
     link.href = out.toDataURL('image/png');
@@ -506,7 +597,7 @@
   function addHat({box}){
     const h=document.createElement('img');
     h.src=hatSrc; h.className='hat';
-    h.ondragstart = () => false; // Prevents ghost image dragging
+    h.ondragstart = () => false;
 
     let trueW, trueH, trueX, trueY;
     if (box) {
@@ -573,7 +664,7 @@
   // --- GLOBAL (WRAP) INTERACTION LISTENERS ---
   interact(wrap)
     .draggable({
-      enabled: false, // Initially disabled
+      enabled: false,
       listeners: {
         move(ev) {
           if (!selectedHat) return;
@@ -588,7 +679,7 @@
       }
     })
     .gesturable({
-      enabled: false, // Initially disabled
+      enabled: false,
       listeners: {
         move (ev) {
           if (!selectedHat) return;
