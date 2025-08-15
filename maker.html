@@ -657,6 +657,16 @@
             <div class="mg-template" data-template="./assets/maker/95.png"><img src="./assets/maker/95.png" alt="Template 95"></div>
             <div class="mg-template" data-template="./assets/maker/96.png"><img src="./assets/maker/96.png" alt="Template 96"></div>
             <div class="mg-template" data-template="./assets/maker/97.png"><img src="./assets/maker/97.png" alt="Template 97"></div>
+            <div class="mg-template" data-template="./assets/maker/98.png"><img src="./assets/maker/98.png" alt="Template 98"></div>
+            <div class="mg-template" data-template="./assets/maker/99.png"><img src="./assets/maker/99.png" alt="Template 99"></div>
+            <div class="mg-template" data-template="./assets/maker/100.png"><img src="./assets/maker/100.png" alt="Template 100"></div>
+            <div class="mg-template" data-template="./assets/maker/101.png"><img src="./assets/maker/101.png" alt="Template 101"></div>
+            <div class="mg-template" data-template="./assets/maker/102.png"><img src="./assets/maker/102.png" alt="Template 102"></div>
+            <div class="mg-template" data-template="./assets/maker/103.png"><img src="./assets/maker/103.png" alt="Template 103"></div>
+            <div class="mg-template" data-template="./assets/maker/104.png"><img src="./assets/maker/104.png" alt="Template 104"></div>
+            <div class="mg-template" data-template="./assets/maker/105.png"><img src="./assets/maker/105.png" alt="Template 105"></div>
+            <div class="mg-template" data-template="./assets/maker/106.png"><img src="./assets/maker/106.png" alt="Template 106"></div>
+            <div class="mg-template" data-template="./assets/maker/107.png"><img src="./assets/maker/107.png" alt="Template 107"></div>
         </div>
     </div>
 </div>
@@ -692,7 +702,7 @@
         let interaction = { active: false };
         let brushMode = 'none';
         let eraserSize = 100;
-        let selectionBoxVisible = false; // NEW: Tracks if the green box should be shown
+        let selectionBoxVisible = false;
         const tempLayerCanvas = document.createElement('canvas');
         const tempLayerCtx = tempLayerCanvas.getContext('2d');
         let historyStack = [];
@@ -1569,31 +1579,33 @@
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
-                panZoomModeActive = false;
+
+                // 1. Save state
+                const wasSelectionBoxVisible = selectionBoxVisible;
+                const tempCamera = { ...camera };
+                const wasInPanZoom = panZoomModeActive;
+
+                // 2. Set state for clean download render
                 selectionBoxVisible = false;
+                panZoomModeActive = false;
                 camera = { x: 0, y: 0, scale: 1 };
-                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
-                 
-                setTimeout(() => {
-                    const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
-                    camera = tempCamera; 
-                    panZoomModeActive = wasInPanZoom;
-                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom);
-                    controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
-                     if(wasInPanZoom) {
-                        brushMode = layerStateBeforePan.brushMode;
-                        if (layerStateBeforePan.activeLayer !== null) {
-                            selectLayer(layerStateBeforePan.activeLayer);
-                        } else if (layerStateBeforePan.activeTextLayer !== null) {
-                            selectTextLayer(layerStateBeforePan.activeTextLayer);
-                        } else {
-                            deselectAll();
-                        }
-                    } else {
-                       deselectAll();
-                    }
-                }, 100);
+
+                // 3. Redraw the canvas cleanly for download
+                draw();
+
+                // 4. Generate the download link from the clean canvas
+                const link = document.createElement('a');
+                link.download = `adhd-meme.png`;
+                link.href = canvas.toDataURL('image/png', 0.95);
+                link.click();
+
+                // 5. Restore previous state
+                selectionBoxVisible = wasSelectionBoxVisible;
+                camera = tempCamera;
+                panZoomModeActive = wasInPanZoom;
+                
+                // 6. Redraw the canvas to restore the user's view
+                draw();
             });
             document.getElementById('mg-share').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
@@ -1631,7 +1643,7 @@
             zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
-            deselectAll(); // This will also set selectionBoxVisible to false and draw
+            deselectAll();
         }
 
         setupListeners();
