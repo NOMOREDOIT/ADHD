@@ -28,6 +28,9 @@
     background:var(--bg) url('./assets/wallpaper.png') repeat fixed;
     color:var(--ink); display:flex; flex-direction:column;
     align-items:center; padding:60px 20px; gap:30px;
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10+ */
+    user-select: none; /* Standard syntax */
   }
   h2{margin:0;font-size:32px;letter-spacing:1px;text-shadow:1px 1px var(--light)}
 
@@ -39,10 +42,10 @@
 
   /* ─── content area ─── */
   .content{padding:20px;text-align:center}
-  #wrap{position:relative;display:inline-block;max-width:100%;overflow:hidden}
+  #wrap{position:relative;display:inline-block;max-width:100%;overflow:hidden; touch-action: none; /* Prevents default touch actions like scrolling/zooming page */}
   #wrap img,#wrap canvas{display:block;max-width:100%;height:auto;image-rendering:pixelated}
   #shot,#layer{position:absolute;top:0;left:0;max-width:100%;height:auto;image-rendering:pixelated;pointer-events:none;z-index:0}
-  .hat{position:absolute;cursor:move;touch-action:none;user-select:none;box-sizing:border-box; transform-origin: center;}
+  .hat{position:absolute;cursor:move;touch-action:none;user-select:none;box-sizing:border-box; transform-origin: center; -webkit-touch-callout: none; /* iOS Safari - disables the menu on long press */}
   .hat.selected{border:2px dashed var(--ink)}
   .delete-btn{position:absolute;top:-8px;right:-8px;width:20px;height:20px;background:#ff5555;color:#fff;border:1px solid var(--ink);border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;font:700 16px sans-serif;z-index:10}
   .hat.selected .delete-btn{display:flex}
@@ -130,6 +133,8 @@
 
   /* status text */
   #status{margin-top:12px;color:var(--shadow);font-size:18px}
+  #downloadOptions { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;}
+
 
   @media (max-width: 768px) {
     html {
@@ -157,6 +162,7 @@
     }
       
     /* make the button bar wrap nicely */
+    .button-grid { display: flex; flex-wrap: wrap; justify-content: center; }
     .content button, .content input[type=file] {
       flex-grow: 1; /* allow buttons to grow and fill space */
       font-size: 14px; /* smaller font for more compact buttons */
@@ -176,7 +182,7 @@
   <!-- main app window -->
   <div class="window">
     <div class="titlebar">
-      <span>ADHD Filter Suite v2.0</span>
+      <span>ADHD Filter Suite v2.1</span>
       <div class="controls">
         <div class="btn-square"></div>
         <div class="btn-square"></div>
@@ -184,44 +190,34 @@
     </div>
 
     <div class="content">
-      <input type="file" id="pick" accept="image/*">
-      <button id="run" disabled>
-        <!-- Magic Wand Icon (NEW PIXEL-PERFECT VERSION) -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges">
-          <path d="M4 20L16 8l2 2L6 22l-2-2z M17 2h2v4h4v2h-4v4h-2V8h-4V6h4V2z" fill="currentColor"/>
-        </svg>
-        ADHDify
-      </button>
-       <button id="ultraRun" disabled>
-        <!-- Zap Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-          <path d="M7 0L0 9h6v7l7-9H7V0z"/>
-        </svg>
-        ULTRA ADHDify
-      </button>
-      <button id="addHat" disabled>
-        <!-- Plus Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-            <path d="M7 0h2v7h7v2h-7v7h-2v-7h-7v-2h7v-7z"/>
-        </svg>
-        Add Hat
-      </button>
-      <button id="deleteHat" disabled>
-        <!-- Trash Can Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-          <path d="M2 5v11h12V5H2zm3 1h2v8H5V6zm4 0h2v8H9V6zM1 2h14v2H1V2z"/>
-        </svg>
-        Delete Selected
-      </button>
-      <button id="download" disabled>
-        <!-- Download Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-          <path d="M14 9h-3v-8h-4v8h-3l5 6 5-6zm-13 7h14v-2h-14v2z"/>
-        </svg>
-        Download PNG
-      </button>
+      <div class="button-grid">
+        <input type="file" id="pick" accept="image/*">
+        <button id="run" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges"><path d="M4 20L16 8l2 2L6 22l-2-2z M17 2h2v4h4v2h-4v4h-2V8h-4V6h4V2z" fill="currentColor"/></svg>
+          ADHDify
+        </button>
+         <button id="ultraRun" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path d="M7 0L0 9h6v7l7-9H7V0z"/></svg>
+          ULTRA ADHDify
+        </button>
+        <button id="addHat" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path d="M7 0h2v7h7v2h-7v7h-2v-7h-7v-2h7v-7z"/></svg>
+          Add Prop
+        </button>
+        <button id="deleteHat" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path d="M2 5v11h12V5H2zm3 1h2v8H5V6zm4 0h2v8H9V6zM1 2h14v2H1V2z"/></svg>
+          Delete Selected
+        </button>
+        <button id="download" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path d="M14 9h-3v-8h-4v8h-3l5 6 5-6zm-13 7h14v-2h-14v2z"/></svg>
+          Download PNG
+        </button>
+      </div>
+      <div id="downloadOptions">
+        <input type="checkbox" id="includeOffCanvas" checked>
+        <label for="includeOffCanvas">Include off-screen content on download</label>
+      </div>
       <p id="status">loading models…</p>
-      <br><br>
       <div id="wrap">
         <img id="shot" hidden>
         <canvas id="layer" hidden></canvas>
@@ -241,6 +237,8 @@
   const layer=document.getElementById('layer');
   const info=document.getElementById('status');
   const wrap=document.getElementById('wrap');
+  const includeOffCanvasCheck = document.getElementById('includeOffCanvas');
+
 
   const hatSrc='./assets/hat.png';
   const hatBase=new Image(); hatBase.src=hatSrc;
@@ -248,8 +246,6 @@
   const hats=[];
   let selectedHat = null;
   const OVERHANG=.75;
-
-  // --- NEW: A global scale factor to bridge the gap between image and screen coordinates ---
   let coordinateScale = 1;
 
   // --- INITIALIZATION ---
@@ -261,14 +257,9 @@
     updateUIState();
   })();
 
-  // --- NEW: Function to re-calculate scale and update hat visuals on resize ---
   function updateScaleAndHatPositions() {
       if (img.hidden || !img.naturalWidth) return;
-
-      // Calculate the crucial scale factor
       coordinateScale = img.naturalWidth / wrap.clientWidth;
-
-      // Reposition all hats according to the new scale
       hats.forEach(h => {
           const data = h.dataset;
           h.style.left = `${parseFloat(data.x) / coordinateScale}px`;
@@ -277,7 +268,6 @@
           h.style.height = `${parseFloat(data.h) / coordinateScale}px`;
       });
   }
-
 
   function clearHats() {
     hats.forEach(h=>h.remove());
@@ -297,22 +287,19 @@
       const hasImage = !img.hidden || !layer.hidden;
       const hasDistortion = !layer.hidden;
       const hasHats = hats.length > 0;
-
       runBtn.disabled = !hasImage;
       ultraRunBtn.disabled = !hasImage;
       addBtn.disabled = !hasImage;
       deleteBtn.disabled = !selectedHat;
       dlBtn.disabled = !hasImage || (!hasHats && !hasDistortion);
-
       info.style.color = '';
-
       if (selectedHat) {
-          info.textContent = 'Drag, pinch, or rotate the selected hat. Use handles to resize.';
+          info.textContent = 'Drag, pinch, or rotate anywhere on the image. Use handles to resize.';
       } else if (hasHats || hasDistortion) {
           let parts = [];
-          if (hasHats) parts.push(`${hats.length} hat(s) placed`);
+          if (hasHats) parts.push(`${hats.length} prop(s) placed`);
           if (hasDistortion) parts.push('eyes distorted');
-          info.textContent = parts.join(' and ') + '. Click a hat to select it.';
+          info.textContent = parts.join(' and ') + '. Click a prop to select it.';
       } else if (hasImage) {
           info.textContent = 'Image loaded. Click a button to begin.';
       } else {
@@ -328,6 +315,9 @@
       if (selectedHat) {
           selectedHat.classList.add('selected');
       }
+      // Enable/disable global controls based on selection
+      interact(wrap).draggable(!!selectedHat);
+      interact(wrap).gesturable(!!selectedHat);
       updateUIState();
   }
 
@@ -352,44 +342,26 @@
   img.addEventListener('load', () => {
       let w = img.naturalWidth;
       let h = img.naturalHeight;
-
-      const needsResize = w > MAX_DIMENSION || h > MAX_DIMENSION;
-
-      // This block now just handles resizing the source image if needed.
-      // The visual scaling is handled separately.
-      if (needsResize) {
+      if (w > MAX_DIMENSION || h > MAX_DIMENSION) {
           info.textContent = `Resizing image to fit ${MAX_DIMENSION}px...`;
           const ratio = w / h;
-          if (w > h) {
-              w = MAX_DIMENSION;
-              h = Math.round(w / ratio);
-          } else {
-              h = MAX_DIMENSION;
-              w = Math.round(h * ratio);
-          }
+          if (w > h) { w = MAX_DIMENSION; h = Math.round(w / ratio); } 
+          else { h = MAX_DIMENSION; w = Math.round(h * ratio); }
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           img.src = canvas.toDataURL('image/jpeg', 0.92);
-          // Let the 'load' event run again for the resized image
           return; 
       }
-      
-      // Set container and canvas dimensions based on the final image
-      wrap.style.width = img.naturalWidth + 'px'; // Set a base width
-      wrap.style.height = img.naturalHeight + 'px'; // Set a base height
+      wrap.style.width = img.naturalWidth + 'px';
+      wrap.style.height = img.naturalHeight + 'px';
       layer.width = img.naturalWidth;
       layer.height = img.naturalHeight;
-
       updateUIState();
-      // --- NEW: CRITICAL call to set the initial scale ---
       updateScaleAndHatPositions();
   });
 
-  // --- NEW: Listen for window resize to update the scale dynamically ---
   window.addEventListener('resize', updateScaleAndHatPositions);
-
 
   wrap.addEventListener('click', (e) => {
       if (e.target === wrap || e.target === img || e.target === layer) {
@@ -398,160 +370,145 @@
   });
 
   runBtn.addEventListener('click',async()=>{
-    runBtn.disabled=true;
-    ultraRunBtn.disabled=true;
-    info.style.color = '';
-    info.textContent='detecting…';
+    runBtn.disabled=true; ultraRunBtn.disabled=true;
+    info.style.color = ''; info.textContent='detecting…';
     await Promise.all([img.decode(),hatBase.decode()]);
-
-    let dets = await faceapi.detectAllFaces(
-      img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .45 })
-    );
+    let dets = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .45 }));
     if (!dets.length) {
       info.textContent = 'detecting (tier 2)…';
-      dets = await faceapi.detectAllFaces(
-        img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .25 })
-      );
+      dets = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .25 }));
     }
     if (!dets.length) {
       info.textContent = 'detecting (tier 3)…';
-      const loose = await faceapi.detectAllFaces(
-        img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 })
-      );
-      if (loose.length) {
-        loose.sort((a,b) => b.score - a.score);
-        dets = [loose[0]];
-      }
+      const loose = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 }));
+      if (loose.length) { loose.sort((a,b) => b.score - a.score); dets = [loose[0]]; }
     }
-
     clearOverlays();
-
     if(!dets.length){
-      info.style.color = '#cc4444';
-      info.textContent = 'Could not find a face. Please try a clearer image!';
-      const hasImage = !img.hidden;
-      runBtn.disabled = !hasImage;
-      ultraRunBtn.disabled = !hasImage;
+      info.style.color = '#cc4444'; info.textContent = 'Could not find a face. Please try a clearer image!';
+      runBtn.disabled = ultraRunBtn.disabled = !img.hidden;
       return;
     }
-
     dets.forEach(({box})=>addHat({box}));
     selectHat(hats[hats.length-1]);
     updateUIState();
   });
 
-
   ultraRunBtn.addEventListener('click', async () => {
     runBtn.disabled = ultraRunBtn.disabled = true;
-    info.style.color = '';
-    info.textContent = 'ULTRA detecting…';
+    info.style.color = ''; info.textContent = 'ULTRA detecting…';
     await Promise.all([img.decode(), hatBase.decode()]);
-
-    let dets = await faceapi
-      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .4 }))
-      .withFaceLandmarks(true);
+    let dets = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .4 })).withFaceLandmarks(true);
     if (!dets.length) {
       info.textContent = 'ULTRA detecting (tier 2)…';
-      dets = await faceapi
-        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .2 }))
-        .withFaceLandmarks(true);
+      dets = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .2 })).withFaceLandmarks(true);
     }
     if (!dets.length) {
       info.textContent = 'ULTRA detecting (tier 3)…';
-      const loose = await faceapi
-        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 }))
-        .withFaceLandmarks(true);
-      if (loose.length) {
-        loose.sort((a, b) => b.detection.score - a.detection.score);
-        dets = [loose[0]];
-      }
+      const loose = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: .1 })).withFaceLandmarks(true);
+      if (loose.length) { loose.sort((a, b) => b.detection.score - a.detection.score); dets = [loose[0]]; }
     }
-
     clearOverlays();
-
     if (!dets.length) {
-      info.style.color = '#cc4444';
-      info.textContent = 'Could not find a face for ULTRA mode. Try a clearer image!';
-      const hasImage = !img.hidden;
-      runBtn.disabled = !hasImage;
-      ultraRunBtn.disabled = !hasImage;
-      return;
+      info.style.color = '#cc4444'; info.textContent = 'Could not find a face for ULTRA mode. Try a clearer image!';
+      runBtn.disabled = ultraRunBtn.disabled = !img.hidden; return;
     }
-
     dets.forEach(det => addHat({ box: det.detection.box }));
     distortEyes(dets);
-
     selectHat(hats[hats.length - 1] || null);
     updateUIState();
   });
 
-  addBtn.addEventListener('click', () => {
-      addHat({});
-      selectHat(hats[hats.length-1]);
-      updateUIState();
-  });
+  addBtn.addEventListener('click', () => { addHat({}); selectHat(hats[hats.length-1]); updateUIState(); });
 
   deleteBtn.addEventListener('click', () => {
       if (!selectedHat) return;
       const index = hats.indexOf(selectedHat);
-      if(index > -1) {
-          hats.splice(index, 1);
-      }
-      selectedHat.remove();
-      selectHat(null);
-      updateUIState();
+      if(index > -1) { hats.splice(index, 1); }
+      selectedHat.remove(); selectHat(null); updateUIState();
   });
 
-  dlBtn.addEventListener('click',()=>{
+  dlBtn.addEventListener('click', () => {
     const hasDistortion = !layer.hidden;
     const hasHats = hats.length > 0;
-    if(!hasHats && !hasDistortion) return;
+    if (!hasHats && !hasDistortion) return;
 
-    const out=document.createElement('canvas');
-    out.width=img.naturalWidth;
-    out.height=img.naturalHeight;
-    const ctx=out.getContext('2d');
-    
     const baseImage = hasDistortion ? layer : img;
-    ctx.drawImage(baseImage, 0, 0);
+    let outWidth = img.naturalWidth;
+    let outHeight = img.naturalHeight;
+    let offsetX = 0;
+    let offsetY = 0;
 
-    // MODIFIED: This part now works perfectly because the dataset values
-    // are the TRUE image coordinates, which is what the canvas needs.
-    hats.forEach(h=>{
-      const{x, y, w, h:ht, rot, scale}=Object.fromEntries(Object.entries(h.dataset).map(([k,v])=>[k,parseFloat(v)]));
-      ctx.save();
-      ctx.translate(x+w/2,y+ht/2);
-      ctx.rotate(rot*Math.PI/180);
-      ctx.scale(scale, scale);
-      ctx.drawImage(hatBase,-w/2,-ht/2,w,ht);
-      ctx.restore();
+    if (includeOffCanvasCheck.checked && hasHats) {
+        let minX = 0, minY = 0, maxX = outWidth, maxY = outHeight;
+
+        hats.forEach(h => {
+            const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+            const rad = rot * Math.PI / 180;
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+            const w_scaled = w * scale / 2, h_scaled = ht * scale / 2;
+
+            const corners = [
+                { x: -w_scaled, y: -h_scaled }, { x: w_scaled, y: -h_scaled },
+                { x: w_scaled, y: h_scaled }, { x: -w_scaled, y: h_scaled }
+            ];
+
+            corners.forEach(corner => {
+                const rotatedX = corner.x * cos - corner.y * sin + (x + w / 2);
+                const rotatedY = corner.x * sin + corner.y * cos + (y + ht / 2);
+                minX = Math.min(minX, rotatedX);
+                minY = Math.min(minY, rotatedY);
+                maxX = Math.max(maxX, rotatedX);
+                maxY = Math.max(maxY, rotatedY);
+            });
+        });
+
+        outWidth = maxX - minX;
+        outHeight = maxY - minY;
+        offsetX = -minX;
+        offsetY = -minY;
+    }
+
+    const out = document.createElement('canvas');
+    out.width = outWidth;
+    out.height = outHeight;
+    const ctx = out.getContext('2d');
+
+    if (includeOffCanvasCheck.checked) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, out.width, out.height);
+    }
+    
+    ctx.drawImage(baseImage, offsetX, offsetY);
+
+    hats.forEach(h => {
+        const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+        ctx.save();
+        ctx.translate(x + w / 2 + offsetX, y + ht / 2 + offsetY);
+        ctx.rotate(rot * Math.PI / 180);
+        ctx.scale(scale, scale);
+        ctx.drawImage(hatBase, -w / 2, -ht / 2, w, ht);
+        ctx.restore();
     });
 
-    const link=document.createElement('a');
-    link.href=out.toDataURL('image/png');
-    link.download='face-hats-ultra.png';
+    const link = document.createElement('a');
+    link.href = out.toDataURL('image/png');
+    link.download = 'adhdified-creation.png';
     link.click();
   });
 
-
-  // --- MODIFIED: `clampPos` now uses the image's real dimensions ---
   function clampPos({x,y,w,h}){
-    const maxX=img.naturalWidth-w*(1-OVERHANG);
-    const minX=-w*OVERHANG;
-    const maxY=img.naturalHeight-h*(1-OVERHANG);
-    const minY=-h*OVERHANG;
-    return{ x:Math.min(Math.max(x,minX),maxX),
-            y:Math.min(Math.max(y,minY),maxY) };
+    const maxX=img.naturalWidth-w*(1-OVERHANG); const minX=-w*OVERHANG;
+    const maxY=img.naturalHeight-h*(1-OVERHANG); const minY=-h*OVERHANG;
+    return{ x:Math.min(Math.max(x,minX),maxX), y:Math.min(Math.max(y,minY),maxY) };
   }
 
-  // --- MODIFIED: `addHat` now stores TRUE coordinates in the dataset and calculates SCALED styles ---
   function addHat({box}){
     const h=document.createElement('img');
     h.src=hatSrc; h.className='hat';
+    h.ondragstart = () => false; // Prevents ghost image dragging
 
     let trueW, trueH, trueX, trueY;
-
-    // All calculations are based on the image's natural dimensions
     if (box) {
       trueW = box.width*1.25;
       trueH = hatBase.naturalHeight/hatBase.naturalWidth * trueW * 1.25;
@@ -563,110 +520,88 @@
       trueX = (img.naturalWidth / 2) - (trueW / 2);
       trueY = (img.naturalHeight / 2) - (trueH / 2);
     }
-
     ({x: trueX, y: trueY} = clampPos({x: trueX, y: trueY, w: trueW, h: trueH}));
-
-    // Store TRUE image coordinates in the dataset
     Object.assign(h.dataset, {x: trueX, y: trueY, w: trueW, h: trueH, rot: 0, scale: 1});
-    
-    // Set the visual style based on the CURRENT scale factor
     Object.assign(h.style,{
-        width: `${trueW / coordinateScale}px`,
-        height: `${trueH / coordinateScale}px`,
-        left: `${trueX / coordinateScale}px`,
-        top: `${trueY / coordinateScale}px`,
+        width: `${trueW / coordinateScale}px`, height: `${trueH / coordinateScale}px`,
+        left: `${trueX / coordinateScale}px`, top: `${trueY / coordinateScale}px`,
         transform:'rotate(0deg) scale(1)'
     });
 
-    h.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectHat(h);
-    });
-
+    h.addEventListener('click', (e) => { e.stopPropagation(); selectHat(h); });
     h.addEventListener('wheel',e=>{
       if (selectedHat !== h) return;
       e.preventDefault();
       const ang=(+h.dataset.rot)+e.deltaY*.05;
-      const scale = +h.dataset.scale;
       h.dataset.rot=ang;
-      h.style.transform=`rotate(${ang}deg) scale(${scale})`;
+      h.style.transform=`rotate(${ang}deg) scale(${+h.dataset.scale})`;
     });
 
     const delBtn = document.createElement('div');
-    delBtn.className = 'delete-btn';
-    delBtn.innerHTML = '×';
+    delBtn.className = 'delete-btn'; delBtn.innerHTML = '×';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const index = hats.indexOf(h);
       if(index > -1) hats.splice(index, 1);
-      h.remove();
-      selectHat(null);
-      updateUIState();
+      h.remove(); selectHat(null); updateUIState();
     });
     h.appendChild(delBtn);
-
     wrap.appendChild(h); hats.push(h);
 
     interact(h)
-      .draggable({
-        listeners:{move(ev){
-          // --- MODIFIED: Convert screen movement (ev.dx) to image coordinate movement ---
-          let x = parseFloat(h.dataset.x) + (ev.dx * coordinateScale);
-          let y = parseFloat(h.dataset.y) + (ev.dy * coordinateScale);
-          
-          ({x,y} = clampPos({x, y, w: +h.dataset.w, h: +h.dataset.h}));
-          
-          Object.assign(h.dataset,{x,y});
-          // Update visual style based on the new scaled position
-          h.style.left = `${x / coordinateScale}px`;
-          h.style.top = `${y / coordinateScale}px`;
-        }}
-      })
       .resizable({
           edges:{left:true,right:true,top:true,bottom:true},
           listeners: {
               move(ev) {
-                  // --- MODIFIED: Convert screen resize (ev.rect) to image coordinate resize ---
                   const newTrueWidth = ev.rect.width * coordinateScale;
                   const newTrueHeight = ev.rect.height * coordinateScale;
                   let x = parseFloat(h.dataset.x) + (ev.deltaRect.left * coordinateScale);
                   let y = parseFloat(h.dataset.y) + (ev.deltaRect.top * coordinateScale);
-
                   ({x,y} = clampPos({x,y,w:newTrueWidth,h:newTrueHeight}));
                   Object.assign(h.dataset,{x, y, w:newTrueWidth, h:newTrueHeight});
                   Object.assign(h.style, {
-                      left: `${x / coordinateScale}px`,
-                      top: `${y / coordinateScale}px`,
-                      width: `${newTrueWidth / coordinateScale}px`,
-                      height: `${newTrueHeight / coordinateScale}px`
+                      left: `${x / coordinateScale}px`, top: `${y / coordinateScale}px`,
+                      width: `${newTrueWidth / coordinateScale}px`, height: `${newTrueHeight / coordinateScale}px`
                   });
               }
           },
-          modifiers: [
-              interact.modifiers.aspectRatio({
-                  ratio: 'preserve',
-                  equalDelta: true,
-              }),
-          ],
+          modifiers: [ interact.modifiers.aspectRatio({ ratio: 'preserve', equalDelta: true }) ],
       })
-      .gesturable({
-          listeners: {
-              move (ev) {
-                  const h = ev.target;
-                  if(selectedHat !== h) return;
-                  let angle = parseFloat(h.dataset.rot) + ev.da;
-                  let scale = parseFloat(h.dataset.scale) * (1 + ev.ds);
-                  h.style.transform = `rotate(${angle}deg) scale(${scale})`;
-                  Object.assign(h.dataset, {rot: angle, scale: scale});
-              }
-          }
-      })
-      .on('tap', () => {
-        selectHat(h);
-      });
+      .on('tap', () => { selectHat(h); });
   }
 
-  // --- distortEyes function (unchanged, but provided for completeness) ---
+  // --- GLOBAL (WRAP) INTERACTION LISTENERS ---
+  interact(wrap)
+    .draggable({
+      enabled: false, // Initially disabled
+      listeners: {
+        move(ev) {
+          if (!selectedHat) return;
+          const h = selectedHat;
+          let x = parseFloat(h.dataset.x) + (ev.dx * coordinateScale);
+          let y = parseFloat(h.dataset.y) + (ev.dy * coordinateScale);
+          ({x,y} = clampPos({x, y, w: +h.dataset.w, h: +h.dataset.h}));
+          Object.assign(h.dataset,{x,y});
+          h.style.left = `${x / coordinateScale}px`;
+          h.style.top = `${y / coordinateScale}px`;
+        }
+      }
+    })
+    .gesturable({
+      enabled: false, // Initially disabled
+      listeners: {
+        move (ev) {
+          if (!selectedHat) return;
+          const h = selectedHat;
+          let angle = parseFloat(h.dataset.rot) + ev.da;
+          let scale = parseFloat(h.dataset.scale) * (1 + ev.ds);
+          h.style.transform = `rotate(${angle}deg) scale(${scale})`;
+          Object.assign(h.dataset, {rot: angle, scale: scale});
+        }
+      }
+    });
+
+  // --- distortEyes function (unchanged) ---
   function distortEyes(detections) {
       const ctx = layer.getContext('2d');
       ctx.drawImage(img, 0, 0, layer.width, layer.height);
@@ -674,8 +609,7 @@
       const distortedImageData = ctx.createImageData(layer.width, layer.height);
       const origData = originalImageData.data;
       const newData = distortedImageData.data;
-      const strength = 0.65; 
-      const effectScale = 3.0;
+      const strength = 0.65; const effectScale = 3.0;
       const getInterpolatedPixel = (x, y) => {
           const x_floor = Math.floor(x), y_floor = Math.floor(y);
           const x_frac = x - x_floor, y_frac = y - y_floor;
@@ -716,9 +650,7 @@
                           if (sourceX >= 0 && sourceX < layer.width - 1 && sourceY >= 0 && sourceY < layer.height - 1) {
                               const pixel = getInterpolatedPixel(sourceX, sourceY);
                               const destIndex = (y * layer.width + x) * 4;
-                              newData[destIndex] = pixel[0];
-                              newData[destIndex + 1] = pixel[1];
-                              newData[destIndex + 2] = pixel[2];
+                              newData[destIndex] = pixel[0]; newData[destIndex + 1] = pixel[1]; newData[destIndex + 2] = pixel[2];
                           }
                       }
                   }
@@ -726,10 +658,8 @@
           });
       });
       ctx.putImageData(distortedImageData, 0, 0);
-      img.hidden = true;
-      layer.hidden = false;
+      img.hidden = true; layer.hidden = false;
   }
-
   </script>
 </body>
 </html>
