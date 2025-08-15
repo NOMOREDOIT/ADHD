@@ -494,7 +494,7 @@
         const contentW = maxX - minX, contentH = maxY - minY;
         
         const BASE_WIDTH = 1000;
-        const scaleFactor = Math.max(1, Math.sqrt(contentW / BASE_WIDTH));
+        const scaleFactor = 2;//Math.max(1, Math.sqrt(contentW / BASE_WIDTH));
 
         const PADDING = Math.round(20 * scaleFactor);
         const BORDER = Math.round(2 * scaleFactor);
