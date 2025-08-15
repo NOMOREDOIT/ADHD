@@ -657,16 +657,6 @@
             <div class="mg-template" data-template="./assets/maker/95.png"><img src="./assets/maker/95.png" alt="Template 95"></div>
             <div class="mg-template" data-template="./assets/maker/96.png"><img src="./assets/maker/96.png" alt="Template 96"></div>
             <div class="mg-template" data-template="./assets/maker/97.png"><img src="./assets/maker/97.png" alt="Template 97"></div>
-            <div class="mg-template" data-template="./assets/maker/98.png"><img src="./assets/maker/98.png" alt="Template 98"></div>
-            <div class="mg-template" data-template="./assets/maker/99.png"><img src="./assets/maker/99.png" alt="Template 99"></div>
-            <div class="mg-template" data-template="./assets/maker/100.png"><img src="./assets/maker/100.png" alt="Template 100"></div>
-            <div class="mg-template" data-template="./assets/maker/101.png"><img src="./assets/maker/101.png" alt="Template 101"></div>
-            <div class="mg-template" data-template="./assets/maker/102.png"><img src="./assets/maker/102.png" alt="Template 102"></div>
-            <div class="mg-template" data-template="./assets/maker/103.png"><img src="./assets/maker/103.png" alt="Template 103"></div>
-            <div class="mg-template" data-template="./assets/maker/104.png"><img src="./assets/maker/104.png" alt="Template 104"></div>
-            <div class="mg-template" data-template="./assets/maker/105.png"><img src="./assets/maker/105.png" alt="Template 105"></div>
-            <div class="mg-template" data-template="./assets/maker/106.png"><img src="./assets/maker/106.png" alt="Template 106"></div>
-            <div class="mg-template" data-template="./assets/maker/107.png"><img src="./assets/maker/107.png" alt="Template 107"></div>
         </div>
     </div>
 </div>
@@ -702,6 +692,7 @@
         let interaction = { active: false };
         let brushMode = 'none';
         let eraserSize = 100;
+        let selectionBoxVisible = false; // NEW: Tracks if the green box should be shown
         const tempLayerCanvas = document.createElement('canvas');
         const tempLayerCtx = tempLayerCanvas.getContext('2d');
         let historyStack = [];
@@ -763,7 +754,7 @@
             if (panZoomModeActive) {
                 canvas.style.cursor = interaction.active && interaction.type === 'panCamera' ? 'grabbing' : 'grab';
             } else {
-                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
+                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : 'default';
             }
         }
         function updateAllControls() { updateImageControls(); updateTextControls(); }
@@ -834,21 +825,36 @@
         }
         function selectLayer(i) {
             if (panZoomModeActive) return;
-            activeLayer = i; activeTextLayer = null;
-            refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
+            activeLayer = i;
+            activeTextLayer = null;
+            selectionBoxVisible = true;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
         }
         function selectTextLayer(i) {
             if (panZoomModeActive) return;
-            hideToast(); // Switched tool, hide persistent pop-up
+            hideToast();
             brushMode = 'none';
-            activeTextLayer = i; activeLayer = null;
-            refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
+            activeTextLayer = i;
+            activeLayer = null;
+            selectionBoxVisible = true;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
         }
         function deselectAll() {
-            hideToast(); // Deselected everything, hide persistent pop-up
+            hideToast();
             brushMode = 'none';
-            activeLayer = null; activeTextLayer = null;
-            refreshLayerUI(); refreshTextThumbs(); updateAllControls(); draw();
+            activeLayer = null;
+            activeTextLayer = null;
+            selectionBoxVisible = false;
+            refreshLayerUI();
+            refreshTextThumbs();
+            updateAllControls();
+            draw();
         }
 
         function createSnapshot(isDestructive = false) {
@@ -900,7 +906,7 @@
             if (existingHint) {
                 existingHint.remove();
             }
-            if (layers.length >= 1) { // MODIFIED: Changed from > 1 to >= 1
+            if (layers.length >= 1) {
                 const hintEl = document.createElement('div');
                 hintEl.id = 'mg-layers-hint';
                 hintEl.textContent = 'Click to choose layer';
@@ -1038,7 +1044,7 @@
             });
             if (!panZoomModeActive) {
                 const highlightColor = '#00FF00';
-                if (activeLayer !== null && layers[activeLayer]) {
+                if (selectionBoxVisible && activeLayer !== null && layers[activeLayer]) {
                     const l = layers[activeLayer];
                     const scale = l.size / 100;
                     const cropPercent = (l.cropY || 0) / 100;
@@ -1059,7 +1065,7 @@
                     ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
                     ctx.restore();
                 }
-                if (activeTextLayer !== null && textLayers[activeTextLayer]) {
+                if (selectionBoxVisible && activeTextLayer !== null && textLayers[activeTextLayer]) {
                     const t = textLayers[activeTextLayer];
                     if (t.text.trim()) {
                         const bounds = getTextBounds(t);
@@ -1182,7 +1188,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -1243,6 +1249,30 @@
             }
             return null;
         }
+
+        function isPointInLayer(point, layer) {
+            const l = layer;
+            const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
+            const sHeight = l.img.naturalHeight * (1 - cropPercent);
+            if (sHeight <= 0) return false;
+            const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+            const dx = point.x - W()*(l.x/100);
+            const dy = point.y - (H()*(l.y/100) - yOffset);
+            const angle = -l.rot * Math.PI / 180;
+            const localX = (dx * Math.cos(angle) - dy * Math.sin(angle));
+            const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+            const finalX = localX * (l.flip ? -1 : 1);
+            const w = l.img.naturalWidth * scale;
+            const h = l.img.naturalHeight * (1 - cropPercent) * scale;
+            return Math.abs(finalX) < w/2 && Math.abs(localY) < h/2;
+        }
+
+        function isPointInText(point, textLayer) {
+            if (!textLayer.text.trim()) return false;
+            const bounds = getTextBounds(textLayer);
+            return (point.x > bounds.x && point.x < bounds.x + bounds.width && point.y > bounds.y && point.y < bounds.y + bounds.height);
+        }
+
         function handleInteractionStart(e) {
             if (!img) { fileInput.click(); return; }
             const isTouchEvent = !!e.touches;
@@ -1263,14 +1293,15 @@
             
             if (isTouchEvent && e.touches.length >= 2) {
                 e.preventDefault();
-                pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
                 if (activeLayer !== null) {
+                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
                     interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
                     return;
                 } else if (activeTextLayer !== null) {
+                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     interaction = { active: true, type: 'pinchText', index: activeTextLayer, initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), initialState: JSON.parse(JSON.stringify(textLayers[activeTextLayer])) };
                     return;
@@ -1286,46 +1317,51 @@
                 applyErasure(point, point, interaction.mode);
                 return;
             }
-            
-            pushStateToHistory(false);
-            const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
 
-            if (activeTextLayer !== null) {
-                const t = textLayers[activeTextLayer];
-                if (t.text.trim()) {
-                    const bounds = getTextBounds(t);
-                    const handle = getHandleAtPoint(point, bounds, 0, resizeRadius);
-                    if (handle) {
-                        panZoomToggleBtn.classList.add('hidden');
-                        interaction = { active: true, type: 'resizeText', index: activeTextLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
-                        return;
-                    }
-                    if (point.x > bounds.x && point.x < bounds.x + bounds.width && point.y > bounds.y && point.y < bounds.y + bounds.height) {
-                        panZoomToggleBtn.classList.add('hidden');
-                        interaction = { active: true, type: 'dragText', index: activeTextLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
-                        return;
-                    }
-                }
-            } else if (activeLayer !== null) {
+            const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
+            let interactionFoundOnActiveElement = false;
+            let newInteraction = {};
+
+            if (activeLayer !== null) {
                 const l = layers[activeLayer];
                 const scale = l.size / 100, cropPercent = (l.cropY || 0) / 100;
                 const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const bounds = { width: l.img.naturalWidth * scale, height: l.img.naturalHeight * (1 - cropPercent) * scale, cx: W() * (l.x / 100), cy: H() * (l.y / 100) - yOffset };
                 const handle = getHandleAtPoint(point, bounds, l.rot, resizeRadius);
+                
                 if (handle) {
-                    panZoomToggleBtn.classList.add('hidden');
-                    interaction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
-                    return;
+                    newInteraction = { active: true, type: 'resizeLayer', index: activeLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    interactionFoundOnActiveElement = true;
+                } else if (isPointInLayer(point, l)) {
+                    newInteraction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
+                    interactionFoundOnActiveElement = true;
                 }
-                const dx = point.x - W()*(l.x/100), dy = point.y - (H()*(l.y/100) - yOffset);
-                const angle = -l.rot * Math.PI / 180;
-                const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
-                const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
-                const w = l.img.naturalWidth * scale, h = l.img.naturalHeight * (1 - cropPercent) * scale;
-                if (Math.abs(localX) < w/2 && Math.abs(localY) < h/2) {
-                    panZoomToggleBtn.classList.add('hidden');
-                    interaction = { active: true, type: 'dragLayer', index: activeLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(l)) };
-                    return;
+            } else if (activeTextLayer !== null) {
+                const t = textLayers[activeTextLayer];
+                const bounds = getTextBounds(t);
+                const handle = getHandleAtPoint(point, bounds, 0, resizeRadius);
+
+                if (handle) {
+                    newInteraction = { active: true, type: 'resizeText', index: activeTextLayer, handle, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
+                    interactionFoundOnActiveElement = true;
+                } else if (isPointInText(point, t)) {
+                    newInteraction = { active: true, type: 'dragText', index: activeTextLayer, startX: point.x, startY: point.y, initialState: JSON.parse(JSON.stringify(t)) };
+                    interactionFoundOnActiveElement = true;
+                }
+            }
+
+            if (interactionFoundOnActiveElement) {
+                interaction = newInteraction;
+                pushStateToHistory(false);
+                panZoomToggleBtn.classList.add('hidden');
+                if (!selectionBoxVisible) {
+                    selectionBoxVisible = true;
+                    draw();
+                }
+            } else {
+                if (selectionBoxVisible) {
+                    selectionBoxVisible = false;
+                    draw();
                 }
             }
         }
@@ -1535,27 +1571,27 @@
                 if (!img) return toast('Upload an image first');
                 const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
                 panZoomModeActive = false;
+                selectionBoxVisible = false;
                 camera = { x: 0, y: 0, scale: 1 };
                 panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
-                deselectAll(); 
+                 
                 setTimeout(() => {
                     const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
                     camera = tempCamera; 
                     panZoomModeActive = wasInPanZoom;
                     panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom);
                     controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
-                    updateAllControls(); 
-                    if(wasInPanZoom) {
+                     if(wasInPanZoom) {
                         brushMode = layerStateBeforePan.brushMode;
                         if (layerStateBeforePan.activeLayer !== null) {
                             selectLayer(layerStateBeforePan.activeLayer);
                         } else if (layerStateBeforePan.activeTextLayer !== null) {
                             selectTextLayer(layerStateBeforePan.activeTextLayer);
                         } else {
-                            draw();
+                            deselectAll();
                         }
                     } else {
-                        draw();
+                       deselectAll();
                     }
                 }, 100);
             });
@@ -1595,8 +1631,7 @@
             zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
-            refreshLayerUI(); refreshTextThumbs(); updateAllControls();
-            resizeCanvasCSS(800, 600); draw();
+            deselectAll(); // This will also set selectionBoxVisible to false and draw
         }
 
         setupListeners();
