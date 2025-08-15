@@ -647,6 +647,26 @@
             <div class="mg-template" data-template="./assets/maker/85.png"><img src="./assets/maker/85.png" alt="Template 85"></div>
             <div class="mg-template" data-template="./assets/maker/86.png"><img src="./assets/maker/86.png" alt="Template 86"></div>
             <div class="mg-template" data-template="./assets/maker/87.png"><img src="./assets/maker/87.png" alt="Template 87"></div>
+            <div class="mg-template" data-template="./assets/maker/88.png"><img src="./assets/maker/88.png" alt="Template 88"></div>
+            <div class="mg-template" data-template="./assets/maker/89.png"><img src="./assets/maker/89.png" alt="Template 89"></div>
+            <div class="mg-template" data-template="./assets/maker/90.png"><img src="./assets/maker/90.png" alt="Template 90"></div>
+            <div class="mg-template" data-template="./assets/maker/91.png"><img src="./assets/maker/91.png" alt="Template 91"></div>
+            <div class="mg-template" data-template="./assets/maker/92.png"><img src="./assets/maker/92.png" alt="Template 92"></div>
+            <div class="mg-template" data-template="./assets/maker/93.png"><img src="./assets/maker/93.png" alt="Template 93"></div>
+            <div class="mg-template" data-template="./assets/maker/94.png"><img src="./assets/maker/94.png" alt="Template 94"></div>
+            <div class="mg-template" data-template="./assets/maker/95.png"><img src="./assets/maker/95.png" alt="Template 95"></div>
+            <div class="mg-template" data-template="./assets/maker/96.png"><img src="./assets/maker/96.png" alt="Template 96"></div>
+            <div class="mg-template" data-template="./assets/maker/97.png"><img src="./assets/maker/97.png" alt="Template 97"></div>
+            <div class="mg-template" data-template="./assets/maker/98.png"><img src="./assets/maker/98.png" alt="Template 98"></div>
+            <div class="mg-template" data-template="./assets/maker/99.png"><img src="./assets/maker/99.png" alt="Template 99"></div>
+            <div class="mg-template" data-template="./assets/maker/100.png"><img src="./assets/maker/100.png" alt="Template 100"></div>
+            <div class="mg-template" data-template="./assets/maker/101.png"><img src="./assets/maker/101.png" alt="Template 101"></div>
+            <div class="mg-template" data-template="./assets/maker/102.png"><img src="./assets/maker/102.png" alt="Template 102"></div>
+            <div class="mg-template" data-template="./assets/maker/103.png"><img src="./assets/maker/103.png" alt="Template 103"></div>
+            <div class="mg-template" data-template="./assets/maker/104.png"><img src="./assets/maker/104.png" alt="Template 104"></div>
+            <div class="mg-template" data-template="./assets/maker/105.png"><img src="./assets/maker/105.png" alt="Template 105"></div>
+            <div class="mg-template" data-template="./assets/maker/106.png"><img src="./assets/maker/106.png" alt="Template 106"></div>
+            <div class="mg-template" data-template="./assets/maker/107.png"><img src="./assets/maker/107.png" alt="Template 107"></div>
         </div>
     </div>
 </div>
@@ -1162,7 +1182,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
