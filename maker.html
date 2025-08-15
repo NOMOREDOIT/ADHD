@@ -366,11 +366,9 @@
         .mg-template img { width: 100%; height: 100%; object-fit: cover; }
         .color-swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--ink); background: linear-gradient(45deg, #000 0%, #000 50%, #fff 50%, #fff 100%); }
         .mg-layers { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; justify-content: flex-start; }
-        #mg-template-overlay, #mg-save-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0s 0.3s; }
-        #mg-template-overlay.visible, #mg-save-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.3s, visibility 0s 0s; }
-        #mg-template-overlay-close, #mg-save-overlay-close { position: absolute; top: 8px; right: 10px; background: none; border: none; line-height: 1; cursor: pointer; padding: 5px; }
-        #mg-save-overlay-content { padding: 20px; background: var(--light); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); text-align: center;}
-        #mg-save-image { max-width: 80vw; max-height: 70vh; border: 2px solid var(--ink); }
+        #mg-template-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0s 0.3s; }
+        #mg-template-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.3s, visibility 0s 0s; }
+        #mg-template-overlay-close { position: absolute; top: 8px; right: 10px; background: none; border: none; line-height: 1; cursor: pointer; padding: 5px; }
         .mg-layer-thumb .delete-layer, .mg-text-thumb .delete-layer { position: absolute; top: -1px; right: -1px; color: #fff; font-size: .7rem; font-weight: bold; line-height: 1; padding: 1px 4px; cursor: pointer; }
     
         .hidden { display: none !important; }
@@ -673,14 +671,6 @@
     </div>
 </div>
 
-<div id="mg-save-overlay">
-    <div id="mg-save-overlay-content">
-        <button id="mg-save-overlay-close">X</button>
-        <p>Hold down on the image to save</p>
-        <img id="mg-save-image" src="" alt="Your Meme"/>
-    </div>
-</div>
-
 <script>
     (function () {
         const fileInput = document.getElementById('mg-file');
@@ -723,7 +713,6 @@
         let panZoomModeActive = false;
         let camera = { x: 0, y: 0, scale: 1 };
         let layerStateBeforePan = { activeLayer: null, activeTextLayer: null, brushMode: 'none' };
-        let longPressTimer = null;
 
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
@@ -775,7 +764,7 @@
             if (panZoomModeActive) {
                 canvas.style.cursor = interaction.active && interaction.type === 'panCamera' ? 'grabbing' : 'grab';
             } else {
-                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
+                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : 'default';
             }
         }
         function updateAllControls() { updateImageControls(); updateTextControls(); }
@@ -1063,9 +1052,9 @@
                     ctx.fillText(line, W() * (t.x / 100), y);
                 });
             });
-            if (!panZoomModeActive && selectionBoxVisible) {
+            if (!panZoomModeActive) {
                 const highlightColor = '#00FF00';
-                if (activeLayer !== null && layers[activeLayer]) {
+                if (selectionBoxVisible && activeLayer !== null && layers[activeLayer]) {
                     const l = layers[activeLayer];
                     const scale = l.size / 100;
                     const cropPercent = (l.cropY || 0) / 100;
@@ -1086,7 +1075,7 @@
                     ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
                     ctx.restore();
                 }
-                if (activeTextLayer !== null && textLayers[activeTextLayer]) {
+                if (selectionBoxVisible && activeTextLayer !== null && textLayers[activeTextLayer]) {
                     const t = textLayers[activeTextLayer];
                     if (t.text.trim()) {
                         const bounds = getTextBounds(t);
@@ -1209,7 +1198,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -1314,14 +1303,15 @@
             
             if (isTouchEvent && e.touches.length >= 2) {
                 e.preventDefault();
-                pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
                 if (activeLayer !== null) {
+                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
                     interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
                     return;
                 } else if (activeTextLayer !== null) {
+                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     interaction = { active: true, type: 'pinchText', index: activeTextLayer, initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), initialState: JSON.parse(JSON.stringify(textLayers[activeTextLayer])) };
                     return;
@@ -1337,7 +1327,7 @@
                 applyErasure(point, point, interaction.mode);
                 return;
             }
-            
+
             const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
             let interactionFoundOnActiveElement = false;
             let newInteraction = {};
@@ -1589,32 +1579,33 @@
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
-                panZoomModeActive = false;
+
+                // 1. Save state
+                const wasSelectionBoxVisible = selectionBoxVisible;
+                const tempCamera = { ...camera };
+                const wasInPanZoom = panZoomModeActive;
+
+                // 2. Set state for clean download render
                 selectionBoxVisible = false;
+                panZoomModeActive = false;
                 camera = { x: 0, y: 0, scale: 1 };
-                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
-                deselectAll(); 
-                setTimeout(() => {
-                    const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
-                    camera = tempCamera; 
-                    panZoomModeActive = wasInPanZoom;
-                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom);
-                    controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
-                    updateAllControls(); 
-                    if(wasInPanZoom) {
-                        brushMode = layerStateBeforePan.brushMode;
-                        if (layerStateBeforePan.activeLayer !== null) {
-                            selectLayer(layerStateBeforePan.activeLayer);
-                        } else if (layerStateBeforePan.activeTextLayer !== null) {
-                            selectTextLayer(layerStateBeforePan.activeTextLayer);
-                        } else {
-                            draw();
-                        }
-                    } else {
-                        draw();
-                    }
-                }, 100);
+
+                // 3. Redraw the canvas cleanly for download
+                draw();
+
+                // 4. Generate the download link from the clean canvas
+                const link = document.createElement('a');
+                link.download = `adhd-meme.png`;
+                link.href = canvas.toDataURL('image/png', 0.95);
+                link.click();
+
+                // 5. Restore previous state
+                selectionBoxVisible = wasSelectionBoxVisible;
+                camera = tempCamera;
+                panZoomModeActive = wasInPanZoom;
+                
+                // 6. Redraw the canvas to restore the user's view
+                draw();
             });
             document.getElementById('mg-share').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
@@ -1652,8 +1643,7 @@
             zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
-            refreshLayerUI(); refreshTextThumbs(); updateAllControls();
-            resizeCanvasCSS(800, 600); draw();
+            deselectAll();
         }
 
         setupListeners();
