@@ -140,6 +140,8 @@
   /* status text */
   #status{margin-top:12px;color:var(--shadow);font-size:18px}
   #downloadOptions { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 16px;}
+  #previewContainer { margin-top: 10px; display: none; }
+  #previewCanvas { max-width: 200px; max-height: 150px; border: 2px solid var(--ink); background-color: var(--bg); }
 
   /* ─── Thematic Switch ─── */
   .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
@@ -279,6 +281,9 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div id="previewContainer">
+        <canvas id="previewCanvas"></canvas>
+      </div>
       <p id="status">loading models…</p>
       <div id="wrap">
         <img id="shot" hidden>
@@ -300,6 +305,8 @@
   const info=document.getElementById('status');
   const wrap=document.getElementById('wrap');
   const includeOffCanvasCheck = document.getElementById('includeOffCanvas');
+  const previewContainer = document.getElementById('previewContainer');
+  const previewCanvas = document.getElementById('previewCanvas');
 
 
   const hatSrc='./assets/hat.png';
@@ -329,6 +336,7 @@
           h.style.width = `${parseFloat(data.w) / coordinateScale}px`;
           h.style.height = `${parseFloat(data.h) / coordinateScale}px`;
       });
+      updatePreview();
   }
 
   function clearHats() {
@@ -367,6 +375,7 @@
       } else {
           info.textContent = 'models ready — choose an image';
       }
+      updatePreview();
   }
 
   function selectHat(hatElement) {
@@ -524,7 +533,7 @@
         const BASE_WIDTH = 1000;
         const scaleFactor = 2;//Math.max(1, Math.sqrt(contentW / BASE_WIDTH));
 
-        const PADDING = Math.round(20);
+        const PADDING = Math.round(10);
         const BORDER = Math.round(2 * scaleFactor);
         const SHADOW = Math.ceil(1 * scaleFactor);
         const TITLEBAR_H = Math.round(24 * scaleFactor);
@@ -616,6 +625,53 @@
     link.click();
   });
 
+  includeOffCanvasCheck.addEventListener('change', updatePreview);
+
+  function updatePreview() {
+      if (!includeOffCanvasCheck.checked || hats.length === 0) {
+          previewContainer.style.display = 'none';
+          return;
+      }
+      previewContainer.style.display = 'block';
+
+      const baseImage = !layer.hidden ? layer : img;
+      let minX = 0, minY = 0, maxX = img.naturalWidth, maxY = img.naturalHeight;
+
+      hats.forEach(h => {
+          const data = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+          const rad = data.rot * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+          const w_scaled = data.w * data.scale / 2, h_scaled = data.h * data.scale / 2;
+          const cx = data.x + data.w / 2, cy = data.y + data.h / 2;
+          const corners = [ { x: -w_scaled, y: -h_scaled }, { x: w_scaled, y: -h_scaled }, { x: w_scaled, y: h_scaled }, { x: -w_scaled, y: h_scaled } ];
+          corners.forEach(corner => {
+              const rotX = corner.x * cos - corner.y * sin + cx, rotY = corner.x * sin + corner.y * cos + cy;
+              minX = Math.min(minX, rotX); minY = Math.min(minY, rotY);
+              maxX = Math.max(maxX, rotX); maxY = Math.max(maxY, rotY);
+          });
+      });
+
+      minX = Math.min(minX, 0); minY = Math.min(minY, 0);
+      maxX = Math.max(maxX, img.naturalWidth); maxY = Math.max(maxY, img.naturalHeight);
+
+      const contentW = maxX - minX, contentH = maxY - minY;
+      
+      previewCanvas.width = contentW;
+      previewCanvas.height = contentH;
+      const prevCtx = previewCanvas.getContext('2d');
+      const offsetX = -minX;
+      const offsetY = -minY;
+
+      prevCtx.drawImage(baseImage, offsetX, offsetY);
+      hats.forEach(h => {
+          const { x, y, w, h: ht, rot, scale } = Object.fromEntries(Object.entries(h.dataset).map(([k, v]) => [k, parseFloat(v)]));
+          prevCtx.save();
+          prevCtx.translate(x + w / 2 + offsetX, y + ht / 2 + offsetY);
+          prevCtx.rotate(rot * Math.PI / 180); prevCtx.scale(scale, scale);
+          prevCtx.drawImage(hatBase, -w / 2, -ht / 2, w, ht);
+          prevCtx.restore();
+      });
+  }
+
   function clampPos({x,y,w,h}){
     const maxX=img.naturalWidth-w*(1-OVERHANG); const minX=-w*OVERHANG;
     const maxY=img.naturalHeight-h*(1-OVERHANG); const minY=-h*OVERHANG;
@@ -654,6 +710,7 @@
       const ang=(+h.dataset.rot)+e.deltaY*.05;
       h.dataset.rot=ang;
       h.style.transform=`rotate(${ang}deg) scale(${+h.dataset.scale})`;
+      updatePreview();
     });
 
     const delBtn = document.createElement('div');
@@ -682,6 +739,7 @@
                       left: `${x / coordinateScale}px`, top: `${y / coordinateScale}px`,
                       width: `${newTrueWidth / coordinateScale}px`, height: `${newTrueHeight / coordinateScale}px`
                   });
+                  updatePreview();
               }
           },
           modifiers: [ interact.modifiers.aspectRatio({ ratio: 'preserve', equalDelta: true }) ],
@@ -703,6 +761,7 @@
           Object.assign(h.dataset,{x,y});
           h.style.left = `${x / coordinateScale}px`;
           h.style.top = `${y / coordinateScale}px`;
+          updatePreview();
         }
       }
     })
@@ -716,6 +775,7 @@
           let scale = parseFloat(h.dataset.scale) * (1 + ev.ds);
           h.style.transform = `rotate(${angle}deg) scale(${scale})`;
           Object.assign(h.dataset, {rot: angle, scale: scale});
+          updatePreview();
         }
       }
     });
