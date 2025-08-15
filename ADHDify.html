@@ -157,8 +157,36 @@
   input:checked + .slider { background-color: #55aa55; }
   input:checked + .slider:before { transform: translateX(20px); }
 
-
+  /* --- Responsive Design for Tablets --- */
   @media (max-width: 1024px) {
+    html {
+      zoom: 0.9; /* Adjust zoom for better fit */
+    }
+    body {
+      padding: 40px 15px; /* Adjust padding */
+      gap: 25px;
+    }
+    h2 {
+      font-size: 28px; /* Slightly smaller title */
+    }
+    .window {
+      width: 95%; /* Use more of the screen width */
+      max-width: 912px; /* Set a reasonable max width */
+    }
+    .content {
+      padding: 18px; /* Adjust content padding */
+    }
+    /* Adjust button font size for better fit */
+    .content button, .content input[type=file] {
+      font-size: 20px;
+    }
+    #status {
+      font-size: 16px;
+    }
+  }
+
+  /* --- Responsive Design for Mobile --- */
+  @media (max-width: 768px) {
     html {
       zoom: normal; /* remove the fixed zoom on mobile */
     }
@@ -175,7 +203,7 @@
 
     .window {
       width: 100%; /* allow the window to take the full width */
-      max-width: 500px; /* but not get too wide on tablets */
+      max-width: 600px; /* but not get too wide on tablets */
       box-sizing: border-box;
     }
 
@@ -496,7 +524,7 @@
         const BASE_WIDTH = 1000;
         const scaleFactor = 2;//Math.max(1, Math.sqrt(contentW / BASE_WIDTH));
 
-        const PADDING = Math.round(20 * scaleFactor);
+        const PADDING = Math.round(20);
         const BORDER = Math.round(2 * scaleFactor);
         const SHADOW = Math.ceil(1 * scaleFactor);
         const TITLEBAR_H = Math.round(24 * scaleFactor);
