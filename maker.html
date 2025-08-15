@@ -92,8 +92,6 @@
             width: 100%; height: auto;
             border: 2px solid var(--ink);
             background-color: var(--light);
-            /* Performance Optimization */
-            will-change: transform;
         }
         .mg-preview canvas.grabbing {
             cursor: grabbing;
@@ -368,9 +366,11 @@
         .mg-template img { width: 100%; height: 100%; object-fit: cover; }
         .color-swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--ink); background: linear-gradient(45deg, #000 0%, #000 50%, #fff 50%, #fff 100%); }
         .mg-layers { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; justify-content: flex-start; }
-        #mg-template-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0s 0.3s; }
-        #mg-template-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.3s, visibility 0s 0s; }
-        #mg-template-overlay-close { position: absolute; top: 8px; right: 10px; background: none; border: none; line-height: 1; cursor: pointer; padding: 5px; }
+        #mg-template-overlay, #mg-save-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0s 0.3s; }
+        #mg-template-overlay.visible, #mg-save-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.3s, visibility 0s 0s; }
+        #mg-template-overlay-close, #mg-save-overlay-close { position: absolute; top: 8px; right: 10px; background: none; border: none; line-height: 1; cursor: pointer; padding: 5px; }
+        #mg-save-overlay-content { padding: 20px; background: var(--light); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); text-align: center;}
+        #mg-save-image { max-width: 80vw; max-height: 70vh; border: 2px solid var(--ink); }
         .mg-layer-thumb .delete-layer, .mg-text-thumb .delete-layer { position: absolute; top: -1px; right: -1px; color: #fff; font-size: .7rem; font-weight: bold; line-height: 1; padding: 1px 4px; cursor: pointer; }
     
         .hidden { display: none !important; }
@@ -673,6 +673,14 @@
     </div>
 </div>
 
+<div id="mg-save-overlay">
+    <div id="mg-save-overlay-content">
+        <button id="mg-save-overlay-close">X</button>
+        <p>Hold down on the image to save</p>
+        <img id="mg-save-image" src="" alt="Your Meme"/>
+    </div>
+</div>
+
 <script>
     (function () {
         const fileInput = document.getElementById('mg-file');
@@ -715,19 +723,7 @@
         let panZoomModeActive = false;
         let camera = { x: 0, y: 0, scale: 1 };
         let layerStateBeforePan = { activeLayer: null, activeTextLayer: null, brushMode: 'none' };
-
-        // --- PERFORMANCE ENHANCEMENT ---
-        let isRedrawScheduled = false;
-
-        function scheduleRedraw() {
-            if (isRedrawScheduled) return;
-            isRedrawScheduled = true;
-            requestAnimationFrame(() => {
-                draw();
-                isRedrawScheduled = false;
-            });
-        }
-        // --- END PERFORMANCE ENHANCEMENT ---
+        let longPressTimer = null;
 
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
@@ -779,7 +775,7 @@
             if (panZoomModeActive) {
                 canvas.style.cursor = interaction.active && interaction.type === 'panCamera' ? 'grabbing' : 'grab';
             } else {
-                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : 'default';
+                canvas.style.cursor = brushMode !== 'none' && activeLayer !== null ? 'none' : '';
             }
         }
         function updateAllControls() { updateImageControls(); updateTextControls(); }
@@ -856,7 +852,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            scheduleRedraw();
+            draw();
         }
         function selectTextLayer(i) {
             if (panZoomModeActive) return;
@@ -868,7 +864,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            scheduleRedraw();
+            draw();
         }
         function deselectAll() {
             hideToast();
@@ -879,7 +875,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            scheduleRedraw();
+            draw();
         }
 
         function createSnapshot(isDestructive = false) {
@@ -920,7 +916,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            scheduleRedraw();
+            draw();
             toast("Undo");
         }
         
@@ -948,9 +944,7 @@
                     layers.splice(i, 1);
                     if (activeLayer === i) deselectAll();
                     else if (activeLayer > i) activeLayer--;
-                    refreshLayerUI(); 
-                    scheduleRedraw(); 
-                    toast('Layer removed');
+                    refreshLayerUI(); draw(); toast('Layer removed');
                 };
                 wrap.appendChild(div);
             });
@@ -982,8 +976,7 @@
             if (activeTextLayer === i) deselectAll();
             else if(activeTextLayer > i) activeTextLayer--;
             refreshTextThumbs();
-            scheduleRedraw(); 
-            toast('Text layer removed');
+            draw(); toast('Text layer removed');
         }
         function getTextBounds(textLayer) {
             const t = textLayer;
@@ -1070,9 +1063,9 @@
                     ctx.fillText(line, W() * (t.x / 100), y);
                 });
             });
-            if (!panZoomModeActive) {
+            if (!panZoomModeActive && selectionBoxVisible) {
                 const highlightColor = '#00FF00';
-                if (selectionBoxVisible && activeLayer !== null && layers[activeLayer]) {
+                if (activeLayer !== null && layers[activeLayer]) {
                     const l = layers[activeLayer];
                     const scale = l.size / 100;
                     const cropPercent = (l.cropY || 0) / 100;
@@ -1093,7 +1086,7 @@
                     ctx.fillRect(w/2-ho, h/2-ho, HANDLE_SIZE, HANDLE_SIZE);
                     ctx.restore();
                 }
-                if (selectionBoxVisible && activeTextLayer !== null && textLayers[activeTextLayer]) {
+                if (activeTextLayer !== null && textLayers[activeTextLayer]) {
                     const t = textLayers[activeTextLayer];
                     if (t.text.trim()) {
                         const bounds = getTextBounds(t);
@@ -1182,7 +1175,7 @@
                     historyStack = [];
                     camera = { x: 0, y: 0, scale: 1 };
                     updateAllControls();
-                    scheduleRedraw();
+                    draw();
                 };
                 image.onerror = () => toast('Could not load processed image.');
                 image.src = resizedImageSrc;
@@ -1216,7 +1209,7 @@
             const transformPoint = (p) => {
                 const scale = layer.size / 100;
                 const cropPercent = (layer.cropY || 0) / 100;
-                const yOffset = (layer.img.naturalHeight * cropPercent * scale) / 2;
+                const yOffset = (l.img.naturalHeight * cropPercent * scale) / 2;
                 const dx = p.x - (W() * (layer.x / 100));
                 const dy = p.y - (H() * (layer.y / 100) - yOffset);
                 const angle = -layer.rot * Math.PI / 180;
@@ -1252,7 +1245,7 @@
                     maskCtx.fill();
                 }
             }
-            scheduleRedraw();
+            draw();
         }
         function getMidpoint(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; }
         function getCanvasPoint(e) {
@@ -1321,15 +1314,14 @@
             
             if (isTouchEvent && e.touches.length >= 2) {
                 e.preventDefault();
+                pushStateToHistory(false);
                 const t1 = e.touches[0], t2 = e.touches[1];
                 if (activeLayer !== null) {
-                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY;
                     interaction = { active: true, type: 'pinchLayer', index: activeLayer, initialDist: Math.hypot(dx, dy), initialAngle: Math.atan2(dy, dx), initialMidpoint: getMidpoint(t1, t2), initialState: JSON.parse(JSON.stringify(layers[activeLayer])) };
                     return;
                 } else if (activeTextLayer !== null) {
-                    pushStateToHistory(false);
                     panZoomToggleBtn.classList.add('hidden');
                     interaction = { active: true, type: 'pinchText', index: activeTextLayer, initialDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), initialState: JSON.parse(JSON.stringify(textLayers[activeTextLayer])) };
                     return;
@@ -1345,7 +1337,7 @@
                 applyErasure(point, point, interaction.mode);
                 return;
             }
-
+            
             const resizeRadius = isTouchEvent ? TOUCH_HANDLE_RADIUS : HANDLE_SIZE;
             let interactionFoundOnActiveElement = false;
             let newInteraction = {};
@@ -1384,12 +1376,12 @@
                 panZoomToggleBtn.classList.add('hidden');
                 if (!selectionBoxVisible) {
                     selectionBoxVisible = true;
-                    scheduleRedraw();
+                    draw();
                 }
             } else {
                 if (selectionBoxVisible) {
                     selectionBoxVisible = false;
-                    scheduleRedraw();
+                    draw();
                 }
             }
         }
@@ -1413,10 +1405,10 @@
                     camera.scale = newScale;
                 }
                 clampCamera();
-                scheduleRedraw();
+                draw();
                 return;
             }
-            if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') scheduleRedraw(); return; }
+            if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return; }
             
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length >= 2) {
                 const l = layers[interaction.index];
@@ -1430,9 +1422,7 @@
                 l.rot = interaction.initialState.rot + ((currentAngle - interaction.initialAngle) * 180 / Math.PI);
                 const currentDist = Math.hypot(currentDx, currentDy);
                 if (interaction.initialDist > 1) { l.size = interaction.initialState.size * (currentDist / interaction.initialDist); }
-                updateAllControls(); 
-                scheduleRedraw(); 
-                return;
+                updateAllControls(); draw(); return;
             } else if (interaction.type === 'pinchText' && e.touches && e.touches.length >= 2) {
                 const t = textLayers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
@@ -1441,7 +1431,7 @@
                     t.size = Math.max(5, interaction.initialState.size * (currentDist / interaction.initialDist));
                 }
                 updateAllControls(); 
-                scheduleRedraw(); 
+                draw(); 
                 return;
             }
 
@@ -1465,8 +1455,7 @@
                     const currentDist = Math.hypot(point.x - cx, point.y - cy);
                     if (initialDist > 1) { item.size = Math.max(5, iState.size * (currentDist / initialDist)); }
                 }
-                updateAllControls(); 
-                scheduleRedraw();
+                updateAllControls(); draw();
             }
             interaction.lastPoint = point;
         }
@@ -1518,7 +1507,7 @@
                     toast('Eraser Mode Off');
                 }
                 updateAllControls(); 
-                scheduleRedraw(); 
+                draw(); 
             });
             uneraseToggleBtn.addEventListener('click', () => { 
                 if (activeLayer === null) return;
@@ -1529,10 +1518,10 @@
                     toast('Un-erase mode Off');
                 }
                 updateAllControls(); 
-                scheduleRedraw(); 
+                draw(); 
             });
             undoBtn.addEventListener('click', performUndo);
-            eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; scheduleRedraw(); } });
+            eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; draw(); } });
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
             ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate', 'mg-opacity', 'mg-light'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1540,14 +1529,13 @@
                     if(activeLayer === null) return;
                     const l = layers[activeLayer];
                     if(id === 'mg-pos-x') l.x = +e.target.value; if(id === 'mg-pos-y') l.y = 100 - e.target.value; if(id === 'mg-size') l.size = +e.target.value; if(id === 'mg-crop-y') l.cropY = +e.target.value; if(id === 'mg-rotate') l.rot = +e.target.value; if(id === 'mg-opacity') l.opacity = +e.target.value; if(id === 'mg-light') l.light = +e.target.value;
-                    updateImageControls(); 
-                    scheduleRedraw();
+                    updateImageControls(); draw();
                 });
                 el.addEventListener('mousedown', () => { if (activeLayer !== null) pushStateToHistory(false); });
             });
-            document.getElementById('mg-rotate-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; updateImageControls(); scheduleRedraw(); toast('Rotated 90°'); } });
-            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].flip = !layers[activeLayer].flip; scheduleRedraw(); toast('Flipped Horizontally'); } });
-            txtArea.addEventListener('input', e => { if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true); if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); scheduleRedraw(); } });
+            document.getElementById('mg-rotate-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; updateImageControls(); draw(); toast('Rotated 90°'); } });
+            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].flip = !layers[activeLayer].flip; draw(); toast('Flipped Horizontally'); } });
+            txtArea.addEventListener('input', e => { if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true); if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); draw(); } });
             txtArea.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             ['mg-text-size', 'mg-text-pos-x', 'mg-text-pos-y'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1555,8 +1543,7 @@
                     if (activeTextLayer === null) return;
                     const t = textLayers[activeTextLayer];
                     if (id === 'mg-text-size') t.size = +e.target.value; if (id === 'mg-text-pos-x') t.x = +e.target.value; if (id === 'mg-text-pos-y') t.y = +e.target.value;
-                    updateTextControls(); 
-                    scheduleRedraw();
+                    updateTextControls(); draw();
                 });
                 el.addEventListener('mousedown', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             });
@@ -1579,13 +1566,11 @@
                     }
                 }
                 zoomControls.classList.toggle('hidden', !panZoomModeActive);
-                updateAllControls(); 
-                updateCursor(); 
-                scheduleRedraw();
+                updateAllControls(); updateCursor(); draw();
             });
             resetViewBtn.addEventListener('click', () => {
                 camera = {x: 0, y: 0, scale: 1};
-                scheduleRedraw();
+                draw();
                 toast("View Reset");
             });
             const zoomWithButtons = (factor) => {
@@ -1596,42 +1581,40 @@
                 camera.x = viewCenterX - (viewCenterX - camera.x) * (newScale / camera.scale);
                 camera.y = viewCenterY - (viewCenterY - camera.y) * (newScale / camera.scale);
                 camera.scale = newScale;
-                clampCamera(); 
-                scheduleRedraw();
+                clampCamera(); draw();
             };
             zoomInBtn.addEventListener('click', () => zoomWithButtons(1.2));
             zoomOutBtn.addEventListener('click', () => zoomWithButtons(1 / 1.2));
-            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; scheduleRedraw(); }});
+            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
-
-                // 1. Save state
-                const wasSelectionBoxVisible = selectionBoxVisible;
-                const tempCamera = { ...camera };
-                const wasInPanZoom = panZoomModeActive;
-
-                // 2. Set state for clean download render
-                selectionBoxVisible = false;
+                const tempCamera = { ...camera }, wasInPanZoom = panZoomModeActive;
                 panZoomModeActive = false;
+                selectionBoxVisible = false;
                 camera = { x: 0, y: 0, scale: 1 };
-
-                // 3. Redraw the canvas cleanly for download (synchronously)
-                draw();
-
-                // 4. Generate the download link from the clean canvas
-                const link = document.createElement('a');
-                link.download = `adhd-meme.png`;
-                link.href = canvas.toDataURL('image/png', 0.95);
-                link.click();
-
-                // 5. Restore previous state
-                selectionBoxVisible = wasSelectionBoxVisible;
-                camera = tempCamera;
-                panZoomModeActive = wasInPanZoom;
-                
-                // 6. Redraw the canvas to restore the user's view (asynchronously)
-                scheduleRedraw();
+                panZoomToggleBtn.classList.remove('active'); zoomControls.classList.add('hidden'); controlsWrapper.classList.remove('disabled-for-pan');
+                deselectAll(); 
+                setTimeout(() => {
+                    const link = document.createElement('a'); link.download = `adhd-meme.png`; link.href = canvas.toDataURL('image/png', 0.95); link.click();
+                    camera = tempCamera; 
+                    panZoomModeActive = wasInPanZoom;
+                    panZoomToggleBtn.classList.toggle('active', wasInPanZoom); zoomControls.classList.toggle('hidden', !wasInPanZoom);
+                    controlsWrapper.classList.toggle('disabled-for-pan', wasInPanZoom);
+                    updateAllControls(); 
+                    if(wasInPanZoom) {
+                        brushMode = layerStateBeforePan.brushMode;
+                        if (layerStateBeforePan.activeLayer !== null) {
+                            selectLayer(layerStateBeforePan.activeLayer);
+                        } else if (layerStateBeforePan.activeTextLayer !== null) {
+                            selectTextLayer(layerStateBeforePan.activeTextLayer);
+                        } else {
+                            draw();
+                        }
+                    } else {
+                        draw();
+                    }
+                }, 100);
             });
             document.getElementById('mg-share').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
@@ -1652,7 +1635,7 @@
             canvas.addEventListener('mousedown', handleInteractionStart);
             canvas.addEventListener('mousemove', handleInteractionMove);
             window.addEventListener('mouseup', handleInteractionEnd);
-            canvas.addEventListener('mouseleave', () => { if (interaction.active) handleInteractionEnd(); interaction.lastPoint = null; if (brushMode !== 'none') scheduleRedraw(); });
+            canvas.addEventListener('mouseleave', () => { if (interaction.active) handleInteractionEnd(); interaction.lastPoint = null; if (brushMode !== 'none') draw(); });
             canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
             canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
             window.addEventListener('touchend', handleInteractionEnd);
@@ -1669,7 +1652,8 @@
             zoomControls.classList.add('hidden');
             preview.classList.add('no-image'); canvas.style.width = ''; canvas.style.height = '';
             document.querySelectorAll('.mg-template, .mg-template-add, .mg-template-more, #mg-text-layer-add').forEach(el => el.classList.add('disabled'));
-            deselectAll();
+            refreshLayerUI(); refreshTextThumbs(); updateAllControls();
+            resizeCanvasCSS(800, 600); draw();
         }
 
         setupListeners();
