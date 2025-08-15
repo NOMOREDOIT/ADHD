@@ -92,6 +92,8 @@
             width: 100%; height: auto;
             border: 2px solid var(--ink);
             background-color: var(--light);
+            /* Performance Optimization */
+            will-change: transform;
         }
         .mg-preview canvas.grabbing {
             cursor: grabbing;
@@ -714,6 +716,19 @@
         let camera = { x: 0, y: 0, scale: 1 };
         let layerStateBeforePan = { activeLayer: null, activeTextLayer: null, brushMode: 'none' };
 
+        // --- PERFORMANCE ENHANCEMENT ---
+        let isRedrawScheduled = false;
+
+        function scheduleRedraw() {
+            if (isRedrawScheduled) return;
+            isRedrawScheduled = true;
+            requestAnimationFrame(() => {
+                draw();
+                isRedrawScheduled = false;
+            });
+        }
+        // --- END PERFORMANCE ENHANCEMENT ---
+
         function resizeCanvasCSS(w, h) {
             canvas.width = w * DPR; canvas.height = h * DPR;
             ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(DPR, DPR);
@@ -841,7 +856,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            draw();
+            scheduleRedraw();
         }
         function selectTextLayer(i) {
             if (panZoomModeActive) return;
@@ -853,7 +868,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            draw();
+            scheduleRedraw();
         }
         function deselectAll() {
             hideToast();
@@ -864,7 +879,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            draw();
+            scheduleRedraw();
         }
 
         function createSnapshot(isDestructive = false) {
@@ -905,7 +920,7 @@
             refreshLayerUI();
             refreshTextThumbs();
             updateAllControls();
-            draw();
+            scheduleRedraw();
             toast("Undo");
         }
         
@@ -933,7 +948,9 @@
                     layers.splice(i, 1);
                     if (activeLayer === i) deselectAll();
                     else if (activeLayer > i) activeLayer--;
-                    refreshLayerUI(); draw(); toast('Layer removed');
+                    refreshLayerUI(); 
+                    scheduleRedraw(); 
+                    toast('Layer removed');
                 };
                 wrap.appendChild(div);
             });
@@ -965,7 +982,8 @@
             if (activeTextLayer === i) deselectAll();
             else if(activeTextLayer > i) activeTextLayer--;
             refreshTextThumbs();
-            draw(); toast('Text layer removed');
+            scheduleRedraw(); 
+            toast('Text layer removed');
         }
         function getTextBounds(textLayer) {
             const t = textLayer;
@@ -1164,7 +1182,7 @@
                     historyStack = [];
                     camera = { x: 0, y: 0, scale: 1 };
                     updateAllControls();
-                    draw();
+                    scheduleRedraw();
                 };
                 image.onerror = () => toast('Could not load processed image.');
                 image.src = resizedImageSrc;
@@ -1234,7 +1252,7 @@
                     maskCtx.fill();
                 }
             }
-            draw();
+            scheduleRedraw();
         }
         function getMidpoint(t1, t2) { return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 }; }
         function getCanvasPoint(e) {
@@ -1366,12 +1384,12 @@
                 panZoomToggleBtn.classList.add('hidden');
                 if (!selectionBoxVisible) {
                     selectionBoxVisible = true;
-                    draw();
+                    scheduleRedraw();
                 }
             } else {
                 if (selectionBoxVisible) {
                     selectionBoxVisible = false;
-                    draw();
+                    scheduleRedraw();
                 }
             }
         }
@@ -1395,10 +1413,10 @@
                     camera.scale = newScale;
                 }
                 clampCamera();
-                draw();
+                scheduleRedraw();
                 return;
             }
-            if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') draw(); return; }
+            if (interaction.active) { e.preventDefault(); } else { interaction.lastPoint = getCanvasPoint(e); if (brushMode !== 'none') scheduleRedraw(); return; }
             
             if (interaction.type === 'pinchLayer' && e.touches && e.touches.length >= 2) {
                 const l = layers[interaction.index];
@@ -1412,7 +1430,9 @@
                 l.rot = interaction.initialState.rot + ((currentAngle - interaction.initialAngle) * 180 / Math.PI);
                 const currentDist = Math.hypot(currentDx, currentDy);
                 if (interaction.initialDist > 1) { l.size = interaction.initialState.size * (currentDist / interaction.initialDist); }
-                updateAllControls(); draw(); return;
+                updateAllControls(); 
+                scheduleRedraw(); 
+                return;
             } else if (interaction.type === 'pinchText' && e.touches && e.touches.length >= 2) {
                 const t = textLayers[interaction.index];
                 const t1 = e.touches[0], t2 = e.touches[1];
@@ -1421,7 +1441,7 @@
                     t.size = Math.max(5, interaction.initialState.size * (currentDist / interaction.initialDist));
                 }
                 updateAllControls(); 
-                draw(); 
+                scheduleRedraw(); 
                 return;
             }
 
@@ -1445,7 +1465,8 @@
                     const currentDist = Math.hypot(point.x - cx, point.y - cy);
                     if (initialDist > 1) { item.size = Math.max(5, iState.size * (currentDist / initialDist)); }
                 }
-                updateAllControls(); draw();
+                updateAllControls(); 
+                scheduleRedraw();
             }
             interaction.lastPoint = point;
         }
@@ -1497,7 +1518,7 @@
                     toast('Eraser Mode Off');
                 }
                 updateAllControls(); 
-                draw(); 
+                scheduleRedraw(); 
             });
             uneraseToggleBtn.addEventListener('click', () => { 
                 if (activeLayer === null) return;
@@ -1508,10 +1529,10 @@
                     toast('Un-erase mode Off');
                 }
                 updateAllControls(); 
-                draw(); 
+                scheduleRedraw(); 
             });
             undoBtn.addEventListener('click', performUndo);
-            eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; draw(); } });
+            eraseSizeSlider.addEventListener('input', (e) => { if (brushMode !== 'none') { eraserSize = +e.target.value; eraseSizeVal.textContent = eraserSize; scheduleRedraw(); } });
             document.getElementById('mg-text-layer-add').onclick = () => addTextLayer(false);
             ['mg-pos-x','mg-pos-y','mg-size','mg-crop-y','mg-rotate', 'mg-opacity', 'mg-light'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1519,13 +1540,14 @@
                     if(activeLayer === null) return;
                     const l = layers[activeLayer];
                     if(id === 'mg-pos-x') l.x = +e.target.value; if(id === 'mg-pos-y') l.y = 100 - e.target.value; if(id === 'mg-size') l.size = +e.target.value; if(id === 'mg-crop-y') l.cropY = +e.target.value; if(id === 'mg-rotate') l.rot = +e.target.value; if(id === 'mg-opacity') l.opacity = +e.target.value; if(id === 'mg-light') l.light = +e.target.value;
-                    updateImageControls(); draw();
+                    updateImageControls(); 
+                    scheduleRedraw();
                 });
                 el.addEventListener('mousedown', () => { if (activeLayer !== null) pushStateToHistory(false); });
             });
-            document.getElementById('mg-rotate-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; updateImageControls(); draw(); toast('Rotated 90°'); } });
-            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].flip = !layers[activeLayer].flip; draw(); toast('Flipped Horizontally'); } });
-            txtArea.addEventListener('input', e => { if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true); if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); draw(); } });
+            document.getElementById('mg-rotate-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].rot = (layers[activeLayer].rot + 360 + 90) % 360; updateImageControls(); scheduleRedraw(); toast('Rotated 90°'); } });
+            document.getElementById('mg-flip-icon').addEventListener('click', () => { if (activeLayer !== null) { pushStateToHistory(false); layers[activeLayer].flip = !layers[activeLayer].flip; scheduleRedraw(); toast('Flipped Horizontally'); } });
+            txtArea.addEventListener('input', e => { if (img && activeTextLayer === null && textLayers.length === 0) addTextLayer(true); if (activeTextLayer !== null) { textLayers[activeTextLayer].text = e.target.value; refreshTextThumbs(); scheduleRedraw(); } });
             txtArea.addEventListener('change', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             ['mg-text-size', 'mg-text-pos-x', 'mg-text-pos-y'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1533,7 +1555,8 @@
                     if (activeTextLayer === null) return;
                     const t = textLayers[activeTextLayer];
                     if (id === 'mg-text-size') t.size = +e.target.value; if (id === 'mg-text-pos-x') t.x = +e.target.value; if (id === 'mg-text-pos-y') t.y = +e.target.value;
-                    updateTextControls(); draw();
+                    updateTextControls(); 
+                    scheduleRedraw();
                 });
                 el.addEventListener('mousedown', () => { if (activeTextLayer !== null) pushStateToHistory(false); });
             });
@@ -1556,11 +1579,13 @@
                     }
                 }
                 zoomControls.classList.toggle('hidden', !panZoomModeActive);
-                updateAllControls(); updateCursor(); draw();
+                updateAllControls(); 
+                updateCursor(); 
+                scheduleRedraw();
             });
             resetViewBtn.addEventListener('click', () => {
                 camera = {x: 0, y: 0, scale: 1};
-                draw();
+                scheduleRedraw();
                 toast("View Reset");
             });
             const zoomWithButtons = (factor) => {
@@ -1571,11 +1596,12 @@
                 camera.x = viewCenterX - (viewCenterX - camera.x) * (newScale / camera.scale);
                 camera.y = viewCenterY - (viewCenterY - camera.y) * (newScale / camera.scale);
                 camera.scale = newScale;
-                clampCamera(); draw();
+                clampCamera(); 
+                scheduleRedraw();
             };
             zoomInBtn.addEventListener('click', () => zoomWithButtons(1.2));
             zoomOutBtn.addEventListener('click', () => zoomWithButtons(1 / 1.2));
-            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; draw(); }});
+            textColorToggle.addEventListener('click', () => { if(activeTextLayer !== null) { pushStateToHistory(false); const t = textLayers[activeTextLayer]; t.color = t.color === 'white' ? 'black' : 'white'; scheduleRedraw(); }});
             document.getElementById('mg-reset').addEventListener('click', () => { if (confirm('Are you sure you want to reset the entire project?')) resetApp(); });
             document.getElementById('mg-download').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
@@ -1590,7 +1616,7 @@
                 panZoomModeActive = false;
                 camera = { x: 0, y: 0, scale: 1 };
 
-                // 3. Redraw the canvas cleanly for download
+                // 3. Redraw the canvas cleanly for download (synchronously)
                 draw();
 
                 // 4. Generate the download link from the clean canvas
@@ -1604,8 +1630,8 @@
                 camera = tempCamera;
                 panZoomModeActive = wasInPanZoom;
                 
-                // 6. Redraw the canvas to restore the user's view
-                draw();
+                // 6. Redraw the canvas to restore the user's view (asynchronously)
+                scheduleRedraw();
             });
             document.getElementById('mg-share').addEventListener('click', () => {
                 if (!img) return toast('Upload an image first');
@@ -1626,7 +1652,7 @@
             canvas.addEventListener('mousedown', handleInteractionStart);
             canvas.addEventListener('mousemove', handleInteractionMove);
             window.addEventListener('mouseup', handleInteractionEnd);
-            canvas.addEventListener('mouseleave', () => { if (interaction.active) handleInteractionEnd(); interaction.lastPoint = null; if (brushMode !== 'none') draw(); });
+            canvas.addEventListener('mouseleave', () => { if (interaction.active) handleInteractionEnd(); interaction.lastPoint = null; if (brushMode !== 'none') scheduleRedraw(); });
             canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
             canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
             window.addEventListener('touchend', handleInteractionEnd);
